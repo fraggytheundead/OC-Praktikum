@@ -1,10 +1,7 @@
 /* ----------------------------------------------------------------------
  * This file is part of the WISEBED project.
  * Copyright (C) 2009 by the Institute of Telematics, University of Luebeck
- * This is free software{
-
-}
- you can redistribute it and/or modify it
+ * This is free software; you can redistribute it and/or modify it
  * under the terms of the BSD License. Refer to bsd-licence.txt
  * file in the root of the source tree for further details.
 ------------------------------------------------------------------------*/
@@ -18,6 +15,11 @@
 
 #include "CreateRobot.h"
 
+/**
+ * initializes the UART and starts communication between iSense and the Create Robot
+ * @param pUart a pointer to the UART that is to be used
+ * @return true if the initialization was successful
+ */
 bool Robot::initialize(Uart *pUart){
 	m_pUart = pUart;
 	if(!m_pUart->enabled()) m_pUart->enable();
@@ -31,6 +33,10 @@ bool Robot::initialize(Uart *pUart){
 	return true;
 }
 
+/**
+ * Starts a demo on the Create Robot
+ * @param demo the demo to be started
+ */
 void Robot::startDemo(int demo){
 	char buff[2];
 	buff[0] = CMD_START_DEMO;
@@ -38,6 +44,15 @@ void Robot::startDemo(int demo){
 	m_pUart->write_buffer(buff, 2);
 }
 
+/**
+ * Makes the Create Robot drive
+ * @param velocity the velocity in mm/s. Valid values are between -500 mm/s and 500 mm/s
+ * @param radius the radius of the turn. Valid values are between -2000 mm and 2000 mm. Positive values mean turning to the left, positive values to the right.
+ */
+/* TODO: evtl herausfinden, was passiert, wenn man hier
+ * ungültige Werte verwendet (zB velocity > 500) und ggf abfangen
+ * angeblich fängt der Roboter das von selbst ab
+ */
 void Robot::drive(uint16 velocity, uint16 radius){
 	char buff[5];
 	buff[0] = CMD_DRIVE;
@@ -48,6 +63,11 @@ void Robot::drive(uint16 velocity, uint16 radius){
 	m_pUart->write_buffer(buff, 5);
 }
 
+/**
+ * Makes the Create Robot drive, turning the two wheels at the given speeds
+ * @param leftVelocity speed of the left wheel. Valid values are between -500 mm/s and 500 mm/s
+ * @param rightVelocity speed of the right wheel. Valid values are between -500 mm/s and 500 mm/s
+ */
 void Robot::driveDirect(uint16 leftVelocity, uint16 rightVelocity){
 	char buff[5];
 	buff[0] = CMD_DRIVE_DIRECT;
