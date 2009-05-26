@@ -15,8 +15,11 @@
 
 #include "CreateRobot.h"
 
+//extern Os& globalOs;
+
 /**
- * initializes the UART and starts communication between iSense and the Create Robot
+ * initializes the UART and starts communication between iSense and the Create Robot.
+ * Puts the Robot in SAFE mode
  * @param pUart a pointer to the UART that is to be used
  * @return true if the initialization was successful
  */
@@ -30,6 +33,7 @@ bool Robot::initialize(Uart *pUart){
 	m_pUart->put( CMD_START );
 	// put roomba into safe mode
 	m_pUart->put( CMD_ENTER_SAFE_MODE );
+	m_pUart->register_uint8_handler(this);
 	return true;
 }
 
@@ -47,7 +51,8 @@ void Robot::startDemo(int demo){
 /**
  * Makes the Create Robot drive
  * @param velocity the velocity in mm/s. Valid values are between -500 mm/s and 500 mm/s
- * @param radius the radius of the turn. Valid values are between -2000 mm and 2000 mm. Positive values mean turning to the left, positive values to the right.
+ * @param radius the radius of the turn. Valid values are between -2000 mm and 2000 mm.
+ *		Positive values mean turning to the left, positive values to the right.
  */
 /* TODO: evtl herausfinden, was passiert, wenn man hier
  * ungültige Werte verwendet (zB velocity > 500) und ggf abfangen
@@ -188,3 +193,15 @@ void Robot::waitForEvent(int event){
 	m_pUart->write_buffer(buff, 2);
 }
 
+//void Robot::handle_uart_packet (uint8 type, uint8 *buf, uint8 length) {
+//	globalOs.debug("Type: %i, Length: %i, Buff (3 Bytes): %x %x %x", type, length, buf[0], buf[1], buf[2]);
+//}
+//
+//void Robot::handle (uint32 device, uint32 item_mask) {
+//
+//}
+
+void Robot::handle_uint8_data (uint8 data) {
+//	globalOs.debug("Type: %i", data);
+	JennicOs::os_pointer()->debug("Data: %i", data);
+}

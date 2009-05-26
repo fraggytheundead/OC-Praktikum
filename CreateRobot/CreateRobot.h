@@ -1,4 +1,6 @@
+#define ISENSE_ENABLE_DEPRECATED_METHODS
 #include <isense/uart.h>
+#include <isense/platforms/jennic/jennic_os.h>
 
 #ifndef _CREATEROBOT_H_
 #define _CREATEROBOT_H_
@@ -55,7 +57,7 @@ using namespace isense;
 #define WAIT_PASSIVE_MOVE		22
 
 
-class Robot
+class Robot: public Uint8DataHandler //public UartPacketHandler, public InterruptHandler
 {
 private:
 	Uart* m_pUart;
@@ -79,6 +81,9 @@ public:
 	void waitForDistance(int16 distance);
 	void waitForAngle(int16 angle);
 	void waitForEvent(int event);
+//	virtual void handle_uart_packet (uint8 type, uint8 *buf, uint8 length);
+	virtual void handle_uint8_data (uint8 data);
+//	virtual void handle (uint32 device, uint32 item_mask);
 };
 
 #endif
