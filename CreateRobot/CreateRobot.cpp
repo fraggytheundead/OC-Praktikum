@@ -1,0 +1,170 @@
+/* ----------------------------------------------------------------------
+ * This file is part of the WISEBED project.
+ * Copyright (C) 2009 by the Institute of Telematics, University of Luebeck
+ * This is free software{
+
+}
+ you can redistribute it and/or modify it
+ * under the terms of the BSD License. Refer to bsd-licence.txt
+ * file in the root of the source tree for further details.
+------------------------------------------------------------------------*/
+
+/*
+ * CreateRobot.cpp
+ *
+ *  Created on: May 25, 2009
+ *      Author: Alexander Böcken, Stephan Lohse, Tobias Witt
+ */
+
+#include "CreateRobot.h"
+
+bool Robot::initialize(Uart *pUart){
+	m_pUart = pUart;
+	if(!m_pUart->enabled()) m_pUart->enable();
+	m_pUart->set_baudrate(19200);
+	// 8 Databits, no flowcontrol, set Stoppbit to 1
+	m_pUart->set_control( 8, 'N', 1 );
+	// send roomba start command
+	m_pUart->put( CMD_START );
+	// put roomba into safe mode
+	m_pUart->put( CMD_ENTER_SAFE_MODE );
+	return true;
+}
+
+void Robot::startDemo(int demo){
+	char buff[2];
+	buff[0] = CMD_START_DEMO;
+	buff[1] = (char) demo;
+	m_pUart->write_buffer(buff, 2);
+}
+
+void Robot::drive(uint16 velocity, uint16 radius){
+	char buff[5];
+	buff[0] = CMD_DRIVE;
+	buff[1] = 0xff & (velocity >> 8);
+	buff[2] = 0xff & velocity;
+	buff[3] = 0xff & (radius >> 8);
+	buff[4] = 0xff & radius;
+	m_pUart->write_buffer(buff, 5);
+}
+
+void Robot::driveDirect(uint16 leftVelocity, uint16 rightVelocity){
+	char buff[5];
+	buff[0] = CMD_DRIVE_DIRECT;
+	buff[1] = 0xff & (rightVelocity >> 8);
+	buff[2] = 0xff & rightVelocity;
+	buff[3] = 0xff & (leftVelocity >> 8);
+	buff[4] = 0xff & leftVelocity;
+	m_pUart->write_buffer(buff, 5);
+}
+
+void Robot::setLeds(uint8 ledMask, uint8 powerLedColor, uint8 powerLedIntensity){
+	char buff[4];
+	buff[0] = CMD_SET_LEDS;
+	buff[1] = ledMask;
+	buff[2] = powerLedColor;
+	buff[3] = powerLedIntensity;
+	m_pUart->write_buffer(buff, 4);
+}
+
+void Robot::setOutputs(uint8 mask){
+	char buff[2];
+	buff[0] = CMD_SET_OUTPUTS;
+	buff[1] = mask;
+	m_pUart->write_buffer(buff, 2);
+}
+
+void Robot::setLowSideDriver(uint8 mask){
+	char buff[2];
+	buff[0] = CMD_LOW_SIDE_DRIVER;
+	buff[1] = mask;
+	m_pUart->write_buffer(buff, 2);
+}
+
+void Robot::setSong(int slot, uint8 *pBuffer, uint8 len){
+	char buff[3];
+	buff[0] = CMD_SET_SONG;
+	buff[1] = (char) slot;
+	buff[2] = len;
+	m_pUart->write_buffer(buff, 3);
+	m_pUart->write_buffer((char*) pBuffer, 2*len);
+}
+
+void Robot::playSong(int slot){
+	char buff[2];
+	buff[0] = CMD_PLAY_SONG;
+	buff[1] = (char) slot;
+	m_pUart->write_buffer(buff, 2);
+}
+
+void Robot::requestPacket(int type){
+	char buff[2];
+	buff[0] = CMD_REQUEST_PACKET;
+	buff[1] = (char) type;
+	m_pUart->write_buffer(buff, 2);
+}
+
+void Robot::streamPackets(int numPackets, uint8 *pPackets){
+	char buff[2];
+	buff[0] = CMD_STREAM_PACKETS;
+	buff[1] = (char) numPackets;
+	m_pUart->write_buffer(buff, 2);
+	m_pUart->write_buffer((char*) pPackets, numPackets);
+}
+
+void Robot::setStreamState(bool bPaused){
+	char buff[2];
+	buff[0] = CMD_SET_STREAM_STATE;
+	buff[1] = bPaused?0:1;
+	m_pUart->write_buffer(buff, 2);
+}
+
+void Robot::setScript(uint8 *pScript, uint8 len){
+	char buff[2];
+	buff[0] = CMD_SET_SCRIPT;
+	buff[1] = len;
+	m_pUart->write_buffer(buff, 2);
+	m_pUart->write_buffer((char*) pScript, len);
+}
+
+
+void Robot::executeScript(){
+	m_pUart->put( CMD_EXECUTE_SCRIPT );
+}
+
+// TODO
+uint8 Robot::getScript(uint8 *pScript, uint8 len){
+	return 0;
+}
+
+void Robot::wait(uint8 time){
+	char buff[2];
+	buff[0] = CMD_WAIT;
+	buff[1] = time;
+	m_pUart->write_buffer(buff, 2);
+}
+
+	// in 15ms units
+void Robot::waitForDistance(int16 distance){
+	char buff[3];
+	buff[0] = CMD_WAIT_DISTANCE;
+	buff[1] = (char) 0xff & (distance >> 8);
+	buff[2] = (char) 0xff & distance;
+	m_pUart->write_buffer(buff, 2);
+}
+
+void Robot::waitForAngle(int16 angle){
+	char buff[3];
+	buff[0] = CMD_WAIT_ANGLE;
+	buff[1] = (char) 0xff & (angle >> 8);
+	buff[2] = (char) 0xff & angle;
+	m_pUart->write_buffer(buff, 2);
+}
+
+void Robot::waitForEvent(int event){
+	char buff[2];
+	buff[0] = CMD_WAIT_EVENT;
+	buff[1] = (char) event;
+	m_pUart->write_buffer(buff, 2);
+}
+
