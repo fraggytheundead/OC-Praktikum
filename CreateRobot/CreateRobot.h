@@ -1,15 +1,9 @@
-#define ISENSE_ENABLE_DEPRECATED_METHODS
-#include <isense/uart.h>
-#include <isense/platforms/jennic/jennic_os.h>
-
 #ifndef _CREATEROBOT_H_
 #define _CREATEROBOT_H_
 
-using namespace isense;
-
 // IRobot Create commands
 #define CMD_START				128
-#define CMD_SET_BAUD_RATE		129
+#define CMD_SET_BAUT_RATE		129
 #define CMD_ENTER_SAFE_MODE		131
 #define CMD_ENTER_FULL_MODE		132
 #define CMD_START_DEMO			136
@@ -57,11 +51,65 @@ using namespace isense;
 #define WAIT_PASSIVE_MOVE		22
 
 
-class Robot: public Uint8DataHandler //public UartPacketHandler, public InterruptHandler
+struct RobotState_t
 {
-private:
-	Uart* m_pUart;
+	int16  distance;
+	int16  angle;
+	uint16 voltage;
+	int16  current;
+	uint16 batteryCharge;
+	uint16 batteryCapacity;
+	uint16 wallSignal;
+	uint16 cliffLeftSignal;
+	uint16 cliffFrontLeftSignal;
+	uint16 cliffFrontRightSignal;
+	uint16 cliffRightSignal;
+	uint16 cargoBayAnalogSignal;
+	int16  requestedVelocity;
+	int16  requestedRadius;
+	int16  requestedRightVelocity;
+	int16  requestedLeftVelocity;
+	uint8  bumpAndWheelDrop;
+	uint8  wall;
+	uint8  cliff;
+	uint8  virtualWall;
+	uint8  overcurrents;
+	uint8  infrared;
+	uint8  buttons;
+	uint8  charginState;
+	int8   batteryTemperature;
+	uint8  cargoBayDigitalInputs;
+	uint8  chargingSources;
+	uint8  songNumber;
+	uint8  songPlaying;
+};
+
+typedef struct RobotState_t	ROBOTSTATE;
+typedef ROBOTSTATE*			PROBOTSTATE;
+typedef const ROBOTSTATE*	PCROBOTSTATE;
+
+// Values for cliff
+#define CLIFF_LEFT			0x1
+#define CLIFF_FRONT_LEFT	0x2
+#define CLIFF_FRONT_RIGHT	0x4
+#define CLIFF_RIGHT			0x8
+
+
+class RobotHandler
+{
+	virtual onStateChanged(PCROBOTSTATE pState);
+	virtual onChecksumError();
+};
+
+
+class Robot: public Uint8DataHandler
+{
+protected:
+	Uart       *m_pUart;
+	RobotState *m_pHandler;
+
 public:
+	Robot();
 	bool initialize(Uart *pUart);
 	void startDemo(int demo);
 	void drive(uint16 velocity, uint16 radius);
@@ -77,13 +125,14 @@ public:
 	void setScript(uint8 *pScript, uint8 len);
 	void executeScript();
 	uint8 getScript(uint8 *pScript, uint8 len);
-	void wait(uint8 time);	// in 15ms units
+	void wait(uint8 time);// in 15ms units
 	void waitForDistance(int16 distance);
 	void waitForAngle(int16 angle);
 	void waitForEvent(int event);
-//	virtual void handle_uart_packet (uint8 type, uint8 *buf, uint8 length);
-	virtual void handle_uint8_data (uint8 data);
-//	virtual void handle (uint32 device, uint32 item_mask);
-};
 
+	virtual void handle_uint8_data(uint8 data);
+
+	inline void setRobotHandler(RobotHandler *pHandler)	{ m_pHandler = pHandler; }
+	inline RobotHandler* getRobotHandler()				{ return m_pHandler; }
+};
 #endif
