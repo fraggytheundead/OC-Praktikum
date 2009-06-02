@@ -1,3 +1,9 @@
+<<<<<<< HEAD:CreateRobot/CreateRobot.h
+#include <isense/uart.h>
+#include <isense/platforms/jennic/jennic_os.h>
+
+=======
+>>>>>>> master:CreateRobot/CreateRobot.h
 #ifndef _CREATEROBOT_H_
 #define _CREATEROBOT_H_
 
@@ -50,6 +56,43 @@
 #define WAIT_DIGITAL_INPUT_3	21
 #define WAIT_PASSIVE_MOVE		22
 
+// Packet Types
+#define STREAM_BUMP_WHEELDROP			7	// 1 byte
+#define STREAM_WALL						8	// 1 byte
+#define STREAM_CLIFF_LEFT				9	// 1 byte
+#define STREAM_CLIFF_FRONT_LEFT			10	// 1 byte
+#define STREAM_CLIFF_FRONT_RIGHT		11	// 1 byte
+#define STREAM_CLIFF_RIGHT				12	// 1 byte
+#define STREAM_VIRTUAL_WALL				13	// 1 byte
+#define STREAM_OVERCURRENTS				14	// 1 byte
+#define STREAM_UNUSED_1					14	// 1 byte
+#define STREAM_UNUSED_2					16	// 1 byte
+#define STREAM_INFRARED					17	// 1 byte
+#define STREAM_BUTTONS					18	// 1 byte
+#define STREAM_DISTANCE					19	// 2 bytes
+#define STREAM_ANGLE					20	// 2 bytes
+#define STREAM_CHARGING_STATE			21	// 1 byte
+#define STREAM_VOLTAGE					22	// 2 bytes
+#define STREAM_CURRENT					23	// 2 bytes
+#define STREAM_BATTERY_TEMPERATURE		24	// 1 byte
+#define STREAM_BATTERY_CHARGE			25	// 2 bytes
+#define STREAM_BATTERY_CAPACITY			26	// 2 bytes
+#define STREAM_WALL_SIGNAL				27	// 2 bytes
+#define STREAM_CLIFF_LEFT_SIGNAL		28	// 2 bytes
+#define STREAM_CLIFF_FRONT_LEFT_SIGNAL	29	// 2 bytes
+#define STREAM_CLIFF_FRONT_RIGHT_SIGNAL	30	// 2 bytes
+#define STREAM_CLIFF_RIGHT_SIGNAL		31	// 2 bytes
+#define STREAM_CARGO_BAY_DIGITAL_INPUTS	32	// 1 byte
+#define STREAM_CARGO_BAY_ANALOG_SIGNAL	33	// 2 bytes
+#define STREAM_CHARGING_SOURCES			34	// 1 byte
+#define STREAM_OI_MODE					35	// 1 byte
+#define STREAM_SONG_NUMBER				36	// 1 byte
+#define STREAM_SONG_PLAYING				37	// 1 byte
+#define STREAM_NUMBER_OF_STREAM_STREAMS	38	// 1 byte
+#define STREAM_REQUESTED_VELOCITY		39	// 2 bytes
+#define STREAM_REQUESTED_RADIUS			40	// 2 bytes
+#define STREAM_REQUESTED_RIGHT_VELOCITY	41	// 2 bytes
+#define STREAM_REQUESTED_LEFT_VELOCITY	42	// 2 bytes
 
 struct RobotState_t
 {
@@ -76,7 +119,11 @@ struct RobotState_t
 	uint8  overcurrents;
 	uint8  infrared;
 	uint8  buttons;
+<<<<<<< HEAD:CreateRobot/CreateRobot.h
+	uint8  chargingState;
+=======
 	uint8  charginState;
+>>>>>>> master:CreateRobot/CreateRobot.h
 	int8   batteryTemperature;
 	uint8  cargoBayDigitalInputs;
 	uint8  chargingSources;
@@ -97,6 +144,21 @@ typedef const ROBOTSTATE*	PCROBOTSTATE;
 
 class RobotHandler
 {
+<<<<<<< HEAD:CreateRobot/CreateRobot.h
+public:
+	virtual void onStateChanged(PCROBOTSTATE pState)=0;
+	virtual void onChecksumError()=0;
+};
+
+
+class Robot: public Uint8DataHandler
+{
+protected:
+	Uart       *m_pUart;
+	RobotHandler *m_pHandler;
+
+public:
+=======
 	virtual onStateChanged(PCROBOTSTATE pState);
 	virtual onChecksumError();
 };
@@ -109,6 +171,7 @@ protected:
 	RobotState *m_pHandler;
 
 public:
+>>>>>>> master:CreateRobot/CreateRobot.h
 	Robot();
 	bool initialize(Uart *pUart);
 	void startDemo(int demo);
@@ -135,4 +198,8 @@ public:
 	inline void setRobotHandler(RobotHandler *pHandler)	{ m_pHandler = pHandler; }
 	inline RobotHandler* getRobotHandler()				{ return m_pHandler; }
 };
+<<<<<<< HEAD:CreateRobot/CreateRobot.h
 #endif
+=======
+#endif
+>>>>>>> master:CreateRobot/CreateRobot.h
