@@ -1,4 +1,3 @@
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 /* ----------------------------------------------------------------------
  * This file is part of the WISEBED project.
  * Copyright (C) 2009 by the Institute of Telematics, University of Luebeck
@@ -16,61 +15,16 @@
 
 #include "CreateRobot.h"
 
-=======
->>>>>>> master:CreateRobot/CreateRobot.cpp
 // Stream definitions
 #define STREAM_UNKNOWN					255
 #define STREAM_CHECKSUM					254
 #define STREAM_BYTES_TO_READ			253
 #define STREAM_HEADER					19
 
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 
 #define SET_16BIT_VALUE(name, data) \
 	{ \
 		if(name == 0) \
-=======
-#define STREAM_BUMP_WHEELDROP			7	// 1 byte
-#define STREAM_WALL						8	// 1 byte
-#define STREAM_CLIFF_LEFT				9	// 1 byte
-#define STREAM_CLIFF_FRONT_LEFT			10	// 1 byte
-#define STREAM_CLIFF_FRONT_RIGHT		11	// 1 byte
-#define STREAM_CLIFF_RIGHT				12	// 1 byte
-#define STREAM_VIRTUAL_WALL				13	// 1 byte
-#define STREAM_OVERCURRENTS				14	// 1 byte
-#define STREAM_UNUSED_1					14	// 1 byte
-#define STREAM_UNUSED_2					16	// 1 byte
-#define STREAM_INFRARED					17	// 1 byte
-#define STREAM_BUTTONS					18	// 1 byte
-#define STREAM_DISTANCE					19	// 2 bytes
-#define STREAM_ANGLE					20	// 2 bytes
-#define STREAM_CHARGING_STATE			21	// 1 byte
-#define STREAM_VOLTAGE					22	// 2 bytes
-#define STREAM_CURRENT					23	// 2 bytes
-#define STREAM_BATTERY_TEMPERATURE		24	// 1 byte
-#define STREAM_BATTERY_CHARGE			25	// 2 bytes
-#define STREAM_BATTERY_CAPACITY			26	// 2 bytes
-#define STREAM_WALL_SIGNAL				27	// 2 bytes
-#define STREAM_CLIFF_LEFT_SIGNAL		28	// 2 bytes
-#define STREAM_FRONT_CLIFF_LEFT_SIGNAL	29	// 2 bytes
-#define STREAM_FRONT_CLIFF_RIGHT_SIGNAL	30	// 2 bytes
-#define STREAM_CLIFF_RIGHT_SIGNAL		31	// 2 bytes
-#define STREAM_CARGO_BAY_DIGITAL_INPUTS	32	// 1 byte
-#define STREAM_CARGO_BAY_ANALOG_SIGNAL	33	// 2 bytes
-#define STREAM_CHARGING_SOURCES			34	// 1 byte
-#define STREAM_OI_MODE					35	// 1 byte
-#define STREAM_SONG_NUMBER				36	// 1 byte
-#define STREAM_SONG_PLAYING				37	// 1 byte
-#define STREAM_NUMBER_OF_STREAM_STREAMS	38	// 1 byte
-#define STREAM_REQUESTED_VELOCITY		39	// 2 bytes
-#define STREAM_REQUESTED_RADIUS			40	// 2 bytes
-#define STREAM_REQUESTED_RIGHT_VELOCITY	41	// 2 bytes
-#define STREAM_REQUESTED_LEFT_VELOCITY	42	// 2 bytes
-
-#define SET_16BIT_VALUE(name, data) \
-	{ \
-		if(stream.distance == 0) \
->>>>>>> master:CreateRobot/CreateRobot.cpp
 		{ \
 			name = data; \
 			goto skipSetStateToUnknown; \
@@ -79,18 +33,12 @@
 			name = (name << 8) | data; \
 	}
 
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
-=======
-
-
->>>>>>> master:CreateRobot/CreateRobot.cpp
 Robot::Robot() :
 	m_pUart(NULL),
 	m_pHandler(NULL)
 {
 }
 
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 /**
  * initializes the UART and starts communication between iSense and the Create Robot.
  * Puts the Robot in SAFE mode
@@ -266,8 +214,6 @@ void Robot::waitForEvent(int event){
 	buff[1] = (char) event;
 	m_pUart->write_buffer(buff, 2);
 }
-=======
->>>>>>> master:CreateRobot/CreateRobot.cpp
 
 void Robot::handle_uint8_data(uint8 data)
 {
@@ -276,20 +222,16 @@ void Robot::handle_uint8_data(uint8 data)
 	static int        bytesToRead = 0;
 	static uint8      streamState = STREAM_UNKNOWN;
 
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 	JennicOs::os_pointer()->debug("uint8 Data Handler aufgerufen, data: %i, bytesToRead: %i, checksum: %i, streamState: %i", data, bytesToRead, checksum, streamState);
 
 	checksum += data;
 
-=======
->>>>>>> master:CreateRobot/CreateRobot.cpp
 	switch(streamState)
 	{
 	case STREAM_UNKNOWN:
 		if(data == STREAM_HEADER && bytesToRead == 0)
 		{
 			memset(&robotState, 0, sizeof(ROBOTSTATE));
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 			checksum     = 19;
 			streamState  = STREAM_BYTES_TO_READ;
 			return;	// do not decrement bytesToRead
@@ -300,14 +242,6 @@ void Robot::handle_uint8_data(uint8 data)
 			bytesToRead--;
 		}
 		return;
-=======
-			checksum     = 0;
-			streamState  = STREAM_BYTES_TO_READ;
-		}
-		else
-			streamState = data;
-		return;	// do not decrement bytesToRead
->>>>>>> master:CreateRobot/CreateRobot.cpp
 
 	case STREAM_BYTES_TO_READ:
 		bytesToRead = data;
@@ -315,11 +249,7 @@ void Robot::handle_uint8_data(uint8 data)
 		return;	// do not decrement bytesToRead
 
 	case STREAM_CHECKSUM:
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 		if(checksum == 256)
-=======
-		if(checksum + (int)data == 0)
->>>>>>> master:CreateRobot/CreateRobot.cpp
 		{
 			if(memcmp(&robotState, &oldRobotState, sizeof(ROBOTSTATE)) != 0)
 			{
@@ -337,51 +267,30 @@ void Robot::handle_uint8_data(uint8 data)
 		return;	// do not decrement bytesToRead
 
 	case STREAM_BUMP_WHEELDROP:
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 		robotState.bumpAndWheelDrop = data;
 		break;
 
 	case STREAM_WALL:
 		robotState.wall  = data;
-=======
-		state.bumpAndWheelDrop = data;
-		break;
-
-	case STREAM_WALL:
-		state.wall  = data;
->>>>>>> master:CreateRobot/CreateRobot.cpp
 		break;
 
 	case STREAM_CLIFF_LEFT:
 		if(data)
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 			robotState.cliff |= CLIFF_LEFT;
-=======
-			state.cliff |= CLIFF_LEFT;
->>>>>>> master:CreateRobot/CreateRobot.cpp
 		break;
 
 	case STREAM_CLIFF_FRONT_LEFT:
 		if(data)
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 			robotState.cliff |= CLIFF_FRONT_LEFT;
-=======
-			state.cliff |= CLIFF_FRONT_LEFT;
->>>>>>> master:CreateRobot/CreateRobot.cpp
 		break;
 
 	case STREAM_CLIFF_FRONT_RIGHT:
 		if(data)
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 			robotState.cliff |= CLIFF_FRONT_RIGHT;
-=======
-			state.cliff |= CLIFF_FRONT_RIGHT;
->>>>>>> master:CreateRobot/CreateRobot.cpp
 		break;
 
 	case STREAM_CLIFF_RIGHT:
 		if(data)
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 			robotState.cliff |= CLIFF_RIGHT;
 		break;
 
@@ -487,126 +396,12 @@ void Robot::handle_uint8_data(uint8 data)
 
 	case STREAM_REQUESTED_LEFT_VELOCITY:
 		SET_16BIT_VALUE(robotState.requestedLeftVelocity, data);
-=======
-			state.cliff |= CLIFF_RIGHT;
-		break;
-
-	case STREAM_VIRTUAL_WALL:
-		state.virtualWall = data;
-		break;
-
-	case STREAM_OVERCURRENTS
-		state.virtualWall = data;
-		break;
-
-	case STREAM_INFRARED:
-		state.infrared = data;
-		break;
-
-	case STREAM_BUTTONS:
-		state.buttons = data;
-		break;
-
-	case STREAM_DISTANCE:
-		SET_16BIT_VALUE(stream.distance, data);
-		break;
-
-	case STREAM_ANGLE:
-		SET_16BIT_VALUE(stream.angle, data);
-		break;
-
-	case STREAM_CHARGING_STATE:
-		stream.charginState = data;
-		break;
-
-	case STREAM_VOLTAGE:
-		SET_16BIT_VALUE(stream.voltage, data);
-		break;
-
-	case STREAM_CURRENT:
-		SET_16BIT_VALUE(stream.current, data);
-		break;
-
-	case STREAM_BATTERY_TEMPERATURE:
-		stream.batteryTemperature = data;
-		break;
-
-	case STREAM_BATTERY_CHARGE:
-		SET_16BIT_VALUE(stream.batteryCharge, data);
-		break;
-
-	case STREAM_BATTERY_CAPACITY:
-		SET_16BIT_VALUE(stream.batteryCapacity, data);
-		break;
-
-	case STREAM_WALL_SIGNAL:
-		SET_16BIT_VALUE(stream.wallSignal, data);
-		break;
-
-	case STREAM_CLIFF_LEFT_SIGNAL:
-		SET_16BIT_VALUE(stream.cliffLeftSignal, data);
-		break;
-
-	case STREAM_CLIFF_FRONT_LEFT_SIGNAL:
-		SET_16BIT_VALUE(stream.cliffFrontLeftSignal, data);
-		break;
-
-	case STREAM_CLIFF_FRONT_RIGHT_SIGNAL:
-		SET_16BIT_VALUE(stream.cliffFrontRightSignal, data);
-		break;
-
-	case STREAM_CLIFF_RIGHT_SIGNAL:
-		SET_16BIT_VALUE(stream.cliffRightSignal, data);
-		break;
-
-	case STREAM_CARGO_BAY_DIGITAL_INPUTS:
-		stream.cargoBayDigitalInputs = data;
-		break;
-
-	case STREAM_CARGO_BAY_ANALOG_SIGNAL:
-		SET_16BIT_VALUE(stream.cargoBayAnalogSignal, data);
-		break;
-
-	case STREAM_CHARGIN_SOURCES:
-		stream.charginSources = data;
-		break;
-
-	case STREAM_SONG_NUMBER:
-		stream.songNumber = data;
-		break;
-
-	case STREAM_SONG_PLAYING:
-		stream.songPlaying = data;
-		break;
-
-	case STREAM_REQUESTED_VELOCITY:
-		SET_16BIT_VALUE(stream.requestedVelocity, data);
-		break;
-
-	case STREAM_REQUESTED_RADIUS:
-		SET_16BIT_VALUE(stream.requestedRadius, data);
-		break;
-
-	case STREAM_REQUESTED_RIGHT_VELOCITY:
-		SET_16BIT_VALUE(stream.requestedRightVelocity, data);
-		break;
-
-	case STREAM_REQUESTED_LEFT_VELOCITY:
-		SET_16BIT_VALUE(stream.requestedLeftVelocity, data);
->>>>>>> master:CreateRobot/CreateRobot.cpp
 		break;
 	}
 
 	streamState = STREAM_UNKNOWN;
 
-<<<<<<< HEAD:CreateRobot/CreateRobot.cpp
 skipSetStateToUnknown:
 	if(--bytesToRead == 0)
 		streamState = STREAM_CHECKSUM;
 }
-=======
-skipSetStateToUnknown;
-	if(--bytesToRead == 0)
-		streamState = STREAM_CHECKSUM;
-}
->>>>>>> master:CreateRobot/CreateRobot.cpp

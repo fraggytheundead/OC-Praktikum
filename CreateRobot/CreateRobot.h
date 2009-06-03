@@ -1,11 +1,10 @@
-<<<<<<< HEAD:CreateRobot/CreateRobot.h
 #include <isense/uart.h>
 #include <isense/platforms/jennic/jennic_os.h>
 
-=======
->>>>>>> master:CreateRobot/CreateRobot.h
 #ifndef _CREATEROBOT_H_
 #define _CREATEROBOT_H_
+
+using namespace isense;
 
 // IRobot Create commands
 #define CMD_START				128
@@ -119,11 +118,7 @@ struct RobotState_t
 	uint8  overcurrents;
 	uint8  infrared;
 	uint8  buttons;
-<<<<<<< HEAD:CreateRobot/CreateRobot.h
 	uint8  chargingState;
-=======
-	uint8  charginState;
->>>>>>> master:CreateRobot/CreateRobot.h
 	int8   batteryTemperature;
 	uint8  cargoBayDigitalInputs;
 	uint8  chargingSources;
@@ -144,7 +139,6 @@ typedef const ROBOTSTATE*	PCROBOTSTATE;
 
 class RobotHandler
 {
-<<<<<<< HEAD:CreateRobot/CreateRobot.h
 public:
 	virtual void onStateChanged(PCROBOTSTATE pState)=0;
 	virtual void onChecksumError()=0;
@@ -158,20 +152,6 @@ protected:
 	RobotHandler *m_pHandler;
 
 public:
-=======
-	virtual onStateChanged(PCROBOTSTATE pState);
-	virtual onChecksumError();
-};
-
-
-class Robot: public Uint8DataHandler
-{
-protected:
-	Uart       *m_pUart;
-	RobotState *m_pHandler;
-
-public:
->>>>>>> master:CreateRobot/CreateRobot.h
 	Robot();
 	bool initialize(Uart *pUart);
 	void startDemo(int demo);
@@ -198,8 +178,4 @@ public:
 	inline void setRobotHandler(RobotHandler *pHandler)	{ m_pHandler = pHandler; }
 	inline RobotHandler* getRobotHandler()				{ return m_pHandler; }
 };
-<<<<<<< HEAD:CreateRobot/CreateRobot.h
 #endif
-=======
-#endif
->>>>>>> master:CreateRobot/CreateRobot.h
