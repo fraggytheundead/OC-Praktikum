@@ -6,7 +6,7 @@
 
 using namespace isense;
 
-// IRobot Create commands 
+// IRobot Create commands
 #define CMD_START				128
 #define CMD_SET_BAUT_RATE		129
 #define CMD_ENTER_SAFE_MODE		131
