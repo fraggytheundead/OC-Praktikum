@@ -53,11 +53,28 @@ bool Robot::initialize(Uart *pUart){
 	m_pUart->set_control( 8, 'N', 1 );
 	// send roomba start command
 	m_pUart->put( CMD_START );
+	// turn power LED on (green, full intensity)
+	setLeds(0, 0, 255);
 	// put roomba into safe mode
-	m_pUart->put( CMD_ENTER_SAFE_MODE );
+	changeModeSafe();
 //	m_pUart->set_uint8_handler(this);
 	return true;
 }
+
+void Robot::changeModeSafe()
+{
+	m_pUart->put( CMD_ENTER_SAFE_MODE );
+	// make the power LED yellow
+	setLeds(0, 16, 255);
+}
+
+void Robot::changeModeFull()
+{
+	m_pUart->put( CMD_ENTER_FULL_MODE );
+	// make the Power LED red
+	setLeds(0, 255, 255);
+}
+
 
 /**
  * Starts a demo on the Create Robot
@@ -106,6 +123,7 @@ void Robot::driveDirect(uint16 leftVelocity, uint16 rightVelocity){
 }
 
 void Robot::setLeds(uint8 ledMask, uint8 powerLedColor, uint8 powerLedIntensity){
+//	JennicOs::os_pointer()->debug("setLeds, ledMask:%i, LedColor: %i, LedIntensity: %i", ledMask, powerLedColor, powerLedIntensity);
 	char buff[4];
 	buff[0] = CMD_SET_LEDS;
 	buff[1] = ledMask;

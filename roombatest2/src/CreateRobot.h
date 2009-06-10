@@ -172,6 +172,8 @@ public:
 	void waitForDistance(int16 distance);
 	void waitForAngle(int16 angle);
 	void waitForEvent(int event);
+	void changeModeSafe();
+	void changeModeFull();
 
 	virtual void handle_uint8_data(uint8 data);
 
