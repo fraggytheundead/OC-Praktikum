@@ -37,7 +37,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	{
 		if(paramLength == 2)
 		{
-			JennicOs::os_pointer()->debug("doTask: drive  Param0:%i  Param1:%i",parameters[0],paramaters[1]);
+			JennicOs::os_pointer()->debug("doTask: drive  Param0:%i  Param1:%i",parameters[0],parameters[1]);
 			m_ourRobot.drive((uint16) parameters[0], (uint16) parameters[1]);
 		}
 	}
