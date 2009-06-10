@@ -33,38 +33,38 @@ RobotLogic::~RobotLogic()
 void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *parameters)
 {
 	JennicOs::os_pointer()->debug("doTask STRING, ID: %s, paramLength: %i", taskName, paramLength);
-  if(strcmp(taskName, "drive"))
-  {
-    if(paramLength == 2)
-    {
-    	JennicOs::os_pointer()->debug("doTask: drive");
-      m_ourRobot.drive((uint16) parameters[0], (uint16) parameters[1]);
-    }
-  }
+	if(strcmp(taskName, "drive") == 0)
+	{
+		if(paramLength == 2)
+		{
+			JennicOs::os_pointer()->debug("doTask: drive  Param0:%i  Param1:%i",parameters[0],paramaters[1]);
+			m_ourRobot.drive((uint16) parameters[0], (uint16) parameters[1]);
+		}
+	}
 
-  if(strcmp(taskName, "turn"))
-  {
-    if(paramLength == 2)
-    {
-    	JennicOs::os_pointer()->debug("doTask: turn");
-      turn((int16) parameters[0], (uint8) (parameters[1] & 0xff));
-    }
-  }
+	if(strcmp(taskName, "turn") == 0)
+	{
+		if(paramLength == 2)
+		{
+			JennicOs::os_pointer()->debug("doTask: turn");
+			turn((int16) parameters[0], (uint8) (parameters[1] & 0xff));
+		}
+	}
 
-  if(strcmp(taskName, "turnInfinite"))
-  {
-    if(paramLength == 1)
-    {
-    	JennicOs::os_pointer()->debug("doTask: turnInfinite");
-      turnInfinite((int16) parameters[0]);
-    }
-  }
+	if(strcmp(taskName, "turnInfinite") == 0)
+	{
+		if(paramLength == 1)
+		{
+			JennicOs::os_pointer()->debug("doTask: turnInfinite");
+			turnInfinite((int16) parameters[0]);
+		}
+	}
 
-  if(strcmp(taskName, "stop"))
-  {
-	  JennicOs::os_pointer()->debug("doTask: stop");
-      stop();
-  }
+	if(strcmp(taskName, "stop") == 0)
+	{
+		JennicOs::os_pointer()->debug("doTask: stop");
+		stop();
+	}
 }
 
 void RobotLogic::doTask(uint8 taskID, uint8 paramLength, int16 *parameters)

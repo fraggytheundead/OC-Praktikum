@@ -102,7 +102,9 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 			parameters[i] = (buf[4 + i] << 8) | buf[4 + i + 1];
 		}
 
-		taskName = (char *) buf[4 + paramLength];
+		taskName = (char *) buf+ 4 + paramLength*2;
+
+//		m_os.debug("Buf[%i]: %c", )
 
 		m_os.debug("vorher");
 		m_os.debug("taskName = %s", taskName);
