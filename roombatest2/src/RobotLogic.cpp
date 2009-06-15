@@ -10,16 +10,16 @@
  * RobotLogic.cpp
  *
  *  Created on: Jun 4, 2009
- *      Author: Alexander B�cken, Stephan Lohse, Tobias Witt
+ *      Author: Alexander Böcken, Stephan Lohse, Tobias Witt
  */
 
 #include "RobotLogic.h"
 #include "roombatest.cpp"
 
-RobotLogic::RobotLogic(Uart *pUart)
+RobotLogic::RobotLogic(Uart *pUart, Gpio *pGpio)
 {
   // TODO Auto-generated constructor stub
-  m_ourRobot.initialize(pUart);
+  m_ourRobot.initialize(pUart, pGpio);
   m_randOmat.srand((uint32) (JennicOs::os_pointer()->time()).ms());
 
   m_pCommunication = ((roombatest *) JennicOs::os_pointer()->application())->getCommunication();

@@ -1,4 +1,8 @@
 #include <isense/uart.h>
+#include <isense/timeout_handler.h>
+#include <isense/task.h>
+#include <isense/time.h>
+#include <isense/gpio.h>
 #include <isense/platforms/jennic/jennic_os.h>
 
 #ifndef _CREATEROBOT_H_
@@ -145,15 +149,17 @@ public:
 };
 
 
-class Robot: public Uint8DataHandler
+class Robot: public Uint8DataHandler, public TimeoutHandler, public Task
 {
 protected:
 	Uart       *m_pUart;
+	Gpio       *m_pGpio;
 	RobotHandler *m_pHandler;
 
 public:
 	Robot();
-	bool initialize(Uart *pUart);
+	bool initialize(Uart *pUart, Gpio *pGpio);
+	void setBaudRateViaGpio();
 	void startDemo(int demo);
 	void drive(uint16 velocity, uint16 radius);
 	void driveDirect(uint16 leftVelocity, uint16 rightVelocity);
@@ -176,6 +182,8 @@ public:
 	void changeModeFull();
 
 	virtual void handle_uint8_data(uint8 data);
+	virtual void timeout(void * userdata);
+	virtual void execute(void * userdata);
 
 	inline void setRobotHandler(RobotHandler *pHandler)	{ m_pHandler = pHandler; }
 	inline RobotHandler* getRobotHandler()				{ return m_pHandler; }

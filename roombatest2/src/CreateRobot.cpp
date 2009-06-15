@@ -15,11 +15,17 @@
 
 #include "CreateRobot.h"
 
+#define GPIO_BAUDRATE_PIN				2
+
 // Stream definitions
 #define STREAM_UNKNOWN					255
 #define STREAM_CHECKSUM					254
 #define STREAM_BYTES_TO_READ			253
 #define STREAM_HEADER					19
+
+// Task IDs
+#define TASK_BAUDRATE_GPIO				1
+
 
 
 #define SET_16BIT_VALUE(name, data) \
@@ -35,6 +41,7 @@
 
 Robot::Robot() :
 	m_pUart(NULL),
+	m_pGpio(NULL),
 	m_pHandler(NULL)
 {
 }
@@ -45,8 +52,9 @@ Robot::Robot() :
  * @param pUart a pointer to the UART that is to be used
  * @return true if the initialization was successful
  */
-bool Robot::initialize(Uart *pUart){
+bool Robot::initialize(Uart *pUart, Gpio *pGpio){
 	m_pUart = pUart;
+	m_pGpio = pGpio;
 	if(!m_pUart->enabled()) m_pUart->enable();
 	m_pUart->set_baudrate(19200);
 	// 8 Databits, no flowcontrol, set Stoppbit to 1
@@ -57,14 +65,47 @@ bool Robot::initialize(Uart *pUart){
 	setLeds(0, 0, 255);
 	// put roomba into safe mode
 	changeModeSafe();
-//	m_pUart->set_uint8_handler(this);
+	m_pUart->set_uint8_handler(this);
 	return true;
+}
+
+void Robot::setBaudRateViaGpio()
+{
+	static bool gpioIsOn = true;
+	static uint8 pulseCounter = 255;
+	static uint8 task = TASK_BAUDRATE_GPIO;
+	static Time pulseWidth = Time(300);
+
+	JennicOs::os_pointer()->debug("setBaudRateViaGpio, gpioIsOn: %i, pulseCounter: %i", gpioIsOn, pulseCounter);
+
+	if(pulseCounter == 255)
+	{
+		m_pGpio->set_output(GPIO_BAUDRATE_PIN);
+		JennicOs::os_pointer()->debug("setBaudRateViaGpio, setting GPIO to output");
+		pulseCounter = 0;
+	}
+
+	do
+	{
+		if(gpioIsOn) {
+			m_pGpio->set(GPIO_BAUDRATE_PIN, false);
+			JennicOs::os_pointer()->debug("setBaudRateViaGpio, setting GPIO to low");
+		}
+		else
+		{
+			m_pGpio->set(GPIO_BAUDRATE_PIN, true);
+			JennicOs::os_pointer()->debug("setBaudRateViaGpio, setting GPIO to high");
+			pulseCounter++;
+		}
+		JennicOs::os_pointer()->add_timeout_at(pulseWidth, this, &task);
+	} while(pulseCounter < 3);
+
 }
 
 void Robot::changeModeSafe()
 {
 	m_pUart->put( CMD_ENTER_SAFE_MODE );
-	// make the power LED yellow
+	// make the power LED yellow (sort of. More like "not quite red")
 	setLeds(0, 16, 255);
 }
 
@@ -422,4 +463,18 @@ void Robot::handle_uint8_data(uint8 data)
 //skipSetStateToUnknown:
 //	if(--bytesToRead == 0)
 //		streamState = STREAM_CHECKSUM;
+}
+
+void Robot::timeout(void * userdata)
+{
+	JennicOs::os_pointer()->add_task(this, userdata);
+}
+
+void Robot::execute(void * userdata)
+{
+	uint8 taskID = *(uint8*) userdata;
+	JennicOs::os_pointer()->debug("execute, taskID: %i", taskID);
+	if(taskID == TASK_BAUDRATE_GPIO) {
+		setBaudRateViaGpio();
+	}
 }

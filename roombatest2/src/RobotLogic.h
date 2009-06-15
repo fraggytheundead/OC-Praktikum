@@ -10,7 +10,7 @@
  * RobotLogic.h
  *
  *  Created on: Jun 4, 2009
- *      Author: Alexander B�cken, Stephan Lohse, Tobias Witt
+ *      Author: Alexander Böcken, Stephan Lohse, Tobias Witt
  */
 
 #include <isense/util/util.h>
@@ -26,7 +26,7 @@ using namespace isense;
 
 class RobotLogic {
 public:
-  RobotLogic(Uart *pUart);
+  RobotLogic(Uart *pUart, Gpio *pGpio);
   virtual ~RobotLogic();
   void doTask(const char* taskName, uint8 paramLength, const uint16 *parameters);
   void doTask(uint8 taskID, uint8 paramLength, int16 *parameters);

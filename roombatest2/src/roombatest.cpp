@@ -7,6 +7,7 @@
 #include <isense/os.h>
 #include <isense/dispatcher.h>
 #include <isense/radio.h>
+#include <isense/hardware_radio.h>
 #include <isense/task.h>
 #include <isense/timeout_handler.h>
 #include <isense/isense.h>
@@ -79,6 +80,7 @@ private:
 	Flooding flooding;
 	Communication m_comModule;
 	Uart& ourUart_;
+	Gpio& ourGpio_;
 	RobotLogic m_robotLogic;
 };
 
@@ -89,7 +91,8 @@ roombatest::roombatest(isense::Os& os) :
 //	m_skeleton(os),
 	m_comModule(os),
 	ourUart_(os_.uart(1)),
-	m_robotLogic(&ourUart_)
+	ourGpio_(os_.gpio()),
+	m_robotLogic(&ourUart_, &ourGpio_)
 {
 	os_.dispatcher().add_receiver(this);
 	os_.uart(0).set_packet_handler(isense::Uart::MESSAGE_TYPE_CUSTOM_IN_1, this);
@@ -105,6 +108,7 @@ roombatest::~roombatest()
 void roombatest::boot(void) {
 	os_.allow_sleep(false);
 	os_.add_timeout_in(Time(MILLISECONDS), this, NULL);
+//	os_.radio().hardware_radio().set_channel(20);
     os_.set_log_mode(ISENSE_LOG_MODE_RADIO);
     os_.debug("Debug over Radio");
 }
