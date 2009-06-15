@@ -72,18 +72,18 @@ bool Robot::initialize(Uart *pUart, Gpio *pGpio){
 void Robot::setBaudRateViaGpio()
 {
 	static bool gpioIsOn = true;
-	static uint8 pulseCounter = 255;
+	static uint8 pulseCounter = 0;
 	static uint8 task = TASK_BAUDRATE_GPIO;
 	static Time pulseWidth = Time(300);
 
 	JennicOs::os_pointer()->debug("setBaudRateViaGpio, gpioIsOn: %i, pulseCounter: %i", gpioIsOn, pulseCounter);
 
-	if(pulseCounter == 255)
-	{
-		m_pGpio->set_output(GPIO_BAUDRATE_PIN);
-		JennicOs::os_pointer()->debug("setBaudRateViaGpio, setting GPIO to output");
-		pulseCounter = 0;
-	}
+//	if(pulseCounter == 255)
+//	{
+//		m_pGpio->set_output(GPIO_BAUDRATE_PIN);
+//		JennicOs::os_pointer()->debug("setBaudRateViaGpio, setting GPIO to output");
+//		pulseCounter = 0;
+//	}
 
 	do
 	{
@@ -97,6 +97,7 @@ void Robot::setBaudRateViaGpio()
 			JennicOs::os_pointer()->debug("setBaudRateViaGpio, setting GPIO to high");
 			pulseCounter++;
 		}
+		gpioIsOn = !gpioIsOn;
 		JennicOs::os_pointer()->add_timeout_at(pulseWidth, this, &task);
 	} while(pulseCounter < 3);
 
