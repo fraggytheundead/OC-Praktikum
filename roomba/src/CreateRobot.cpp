@@ -24,7 +24,9 @@
 #define STREAM_HEADER					19
 
 // Task IDs
-#define TASK_BAUDRATE_GPIO				1
+#define TASK_INIT						1
+#define TASK_BAUDRATE_GPIO				2
+
 
 
 
@@ -55,6 +57,13 @@ Robot::Robot() :
 bool Robot::initialize(Uart *pUart, Gpio *pGpio){
 	m_pUart = pUart;
 	m_pGpio = pGpio;
+	Time currentTime = JennicOs::os_pointer()->time();
+	if(currentTime.sec() < 3)
+	{
+		static uint8 task = TASK_INIT;
+		static Time initTime =  Time(3, 0);
+		JennicOs::os_pointer()->add_timeout_at(initTime, this, &task);
+	}
 	if(!m_pUart->enabled()) m_pUart->enable();
 	m_pUart->set_baudrate(19200);
 	// 8 Databits, no flowcontrol, set Stoppbit to 1
@@ -98,7 +107,7 @@ void Robot::setBaudRateViaGpio()
 			pulseCounter++;
 		}
 		gpioIsOn = !gpioIsOn;
-		JennicOs::os_pointer()->add_timeout_at(pulseWidth, this, &task);
+		JennicOs::os_pointer()->add_timeout_in(pulseWidth, this, &task);
 	} while(pulseCounter < 3);
 
 }
