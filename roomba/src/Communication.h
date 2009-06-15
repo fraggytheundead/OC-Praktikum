@@ -7,6 +7,7 @@
 //ueberlegen, die methoden statisch zu machen
 
 #include <isense/os.h>
+#include <Skeleton.h>
 
 #ifndef COMMUNICATION_H_
 #define COMMUNICATION_H_

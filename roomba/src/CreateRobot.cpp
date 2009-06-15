@@ -51,19 +51,32 @@ Robot::Robot() :
 /**
  * initializes the UART and starts communication between iSense and the Create Robot.
  * Puts the Robot in SAFE mode
- * @param pUart a pointer to the UART that is to be used
- * @return true if the initialization was successful
+ * @param pUart the UART that is to be used
+ * @param pGpio the GPIO
  */
-bool Robot::initialize(Uart *pUart, Gpio *pGpio){
+void Robot::initialize(Uart *pUart, Gpio *pGpio)
+{
 	m_pUart = pUart;
 	m_pGpio = pGpio;
 	Time currentTime = JennicOs::os_pointer()->time();
+	// wait for the iCreate to boot up - 3 seconds should do the trick
 	if(currentTime.sec() < 3)
 	{
 		static uint8 task = TASK_INIT;
 		static Time initTime =  Time(3, 0);
 		JennicOs::os_pointer()->add_timeout_at(initTime, this, &task);
 	}
+	else
+	{
+		initialize();
+	}
+}
+
+void Robot::initialize()
+{
+	// set the Baudrate of the iCreate to 19200
+	setBaudRateViaGpio();
+	// init UART
 	if(!m_pUart->enabled()) m_pUart->enable();
 	m_pUart->set_baudrate(19200);
 	// 8 Databits, no flowcontrol, set Stoppbit to 1
@@ -75,7 +88,6 @@ bool Robot::initialize(Uart *pUart, Gpio *pGpio){
 	// put roomba into safe mode
 	changeModeSafe();
 	m_pUart->set_uint8_handler(this);
-	return true;
 }
 
 void Robot::setBaudRateViaGpio()
@@ -83,10 +95,13 @@ void Robot::setBaudRateViaGpio()
 	static bool gpioIsOn = true;
 	static uint8 pulseCounter = 0;
 	static uint8 task = TASK_BAUDRATE_GPIO;
+	// width of the pulse. iCreate Manual states it should be between
+	// 50 and 500 ms. 300 sounded reasonable to me...
 	static Time pulseWidth = Time(300);
 
 	JennicOs::os_pointer()->debug("setBaudRateViaGpio, gpioIsOn: %i, pulseCounter: %i", gpioIsOn, pulseCounter);
 
+//	// Daniela sagt, dass es auch ohne das set_output (welches deprecated ist) geht
 //	if(pulseCounter == 255)
 //	{
 //		m_pGpio->set_output(GPIO_BAUDRATE_PIN);
@@ -94,6 +109,7 @@ void Robot::setBaudRateViaGpio()
 //		pulseCounter = 0;
 //	}
 
+	// pulse the Baudrate pin low three times
 	do
 	{
 		if(gpioIsOn) {
@@ -484,7 +500,12 @@ void Robot::execute(void * userdata)
 {
 	uint8 taskID = *(uint8*) userdata;
 	JennicOs::os_pointer()->debug("execute, taskID: %i", taskID);
-	if(taskID == TASK_BAUDRATE_GPIO) {
+	if(taskID == TASK_BAUDRATE_GPIO)
+	{
 		setBaudRateViaGpio();
+	}
+	if(taskID == TASK_INIT)
+	{
+		initialize();
 	}
 }

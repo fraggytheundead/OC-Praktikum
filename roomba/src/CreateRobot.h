@@ -163,10 +163,11 @@ protected:
 	Uart       *m_pUart;
 	Gpio       *m_pGpio;
 	RobotHandler *m_pHandler;
+	void initialize();
 
 public:
 	Robot();
-	bool initialize(Uart *pUart, Gpio *pGpio);
+	void initialize(Uart *pUart, Gpio *pGpio);
 	void setBaudRateViaGpio();
 	void startDemo(int demo);
 	void drive(uint16 velocity, uint16 radius);
