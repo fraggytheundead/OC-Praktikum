@@ -68,11 +68,11 @@ void Robot::initialize(Uart *pUart, Gpio *pGpio)
 	}
 	else
 	{
-		initialize();
+		initPart2();
 	}
 }
 
-void Robot::initialize()
+void Robot::initPart2()
 {
 	// set the Baudrate of the iCreate to 19200
 	setBaudRateViaGpio();
@@ -506,6 +506,6 @@ void Robot::execute(void * userdata)
 	}
 	if(taskID == TASK_INIT)
 	{
-		initialize();
+		initPart2();
 	}
 }

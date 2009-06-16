@@ -6,11 +6,10 @@
  */
 //ueberlegen, die methoden statisch zu machen
 
-#include <isense/os.h>
-#include <Skeleton.h>
+#ifndef __OCPROJ_COMMUNICATION_H
+#define __OCPROJ_COMMUNICATION_H
 
-#ifndef COMMUNICATION_H_
-#define COMMUNICATION_H_
+#include <isense/os.h>
 
 class Communication {
 public:
@@ -27,4 +26,4 @@ private:
 	isense::Os& m_os;
 };
 
-#endif /* COMMUNICATION_H_ */
+#endif /* __OCPROJ_COMMUNICATION_H */

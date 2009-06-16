@@ -6,15 +6,16 @@
  * file in the root of the source tree for further details.
 ------------------------------------------------------------------------*/
 
+
+#ifndef __OCPROJ_CREATEROBOT_H
+#define __OCPROJ_CREATEROBOT_H
+
 #include <isense/uart.h>
 #include <isense/timeout_handler.h>
 #include <isense/task.h>
 #include <isense/time.h>
 #include <isense/gpio.h>
 #include <isense/platforms/jennic/jennic_os.h>
-
-#ifndef _CREATEROBOT_H_
-#define _CREATEROBOT_H_
 
 using namespace isense;
 
@@ -163,7 +164,7 @@ protected:
 	Uart       *m_pUart;
 	Gpio       *m_pGpio;
 	RobotHandler *m_pHandler;
-	void initialize();
+	void initPart2();
 
 public:
 	Robot();
@@ -197,4 +198,4 @@ public:
 	inline void setRobotHandler(RobotHandler *pHandler)	{ m_pHandler = pHandler; }
 	inline RobotHandler* getRobotHandler()				{ return m_pHandler; }
 };
-#endif
+#endif /* __OCPROJ_CREATEROBOT_H */

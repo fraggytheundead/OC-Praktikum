@@ -106,17 +106,30 @@ void RobotLogic::doTask(uint8 taskID, uint8 paramLength, int16 *parameters)
 
 void RobotLogic::getCapabilities()
 {
-	JennicOs::os_pointer()->debug("getCapabilities");
-	const char* taskList[]={"drive\0","turn\0","turnInfinite\0","stop\0"};
-	const char* paramList[][2]=
-	{
-		{"velocity\0","radius\0"},
-		{"angle\0","randomComponent\0"},
-		{"direction\0","\0"},
-		{"\0","\0"}
-	};
-	const uint8	paramListLength[]={2,2,1,0};
-	m_pCommunication->sendFeatures(JennicOs::os_pointer()->id(), (uint8) 4, (const char**)taskList, paramListLength, (const char***) paramList);
+//	uint8 taskListLength = 4;
+//	const char* taskList[]={"drive\0","turn\0","turnInfinite\0","stop\0"};
+//	const char*** paramList;
+//
+//	const uint8	paramListLength[]={2,2,1,0};
+//
+//#define STRING_MATRIX_NEW(len) ((const char ***)malloc(sizeof (const char **) * len))
+//#define STRING_ARRAY_NEW(len) ((const char **)malloc(sizeof (const char *) * len))
+//
+//	paramList = STRING_MATRIX_NEW (taskListLength);
+//	for (int i = 0; i < taskListLength; ++i)
+//		paramList[i] = STRING_ARRAY_NEW (paramListLength[i]);
+//
+//	paramList[0][0] = "velocity\0";
+//	paramList[0][1] = "radius\0";
+//	paramList[1][0] = "angle\0";
+//	paramList[1][1] = "randomComponent\0";
+//	paramList[2][0] = "direction\0";
+//
+//	m_pCommunication->sendFeatures(JennicOs::os_pointer()->id(), taskListLength, taskList, paramListLength, paramList);
+//
+//	for (int i = 0; i < taskListLength; ++i)
+//		free (paramList[i]);
+//	free (paramList);
 }
 
 void RobotLogic::turn(int16 angle, uint8 randomComponent)
