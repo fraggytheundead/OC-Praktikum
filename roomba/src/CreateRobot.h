@@ -192,7 +192,9 @@ public:
 	void changeModeFull();
 
 	virtual void handle_uint8_data(uint8 data);
+	///From isense::TimeoutHandler
 	virtual void timeout(void * userdata);
+	///From isense::Task
 	virtual void execute(void * userdata);
 
 	inline void setRobotHandler(RobotHandler *pHandler)	{ m_pHandler = pHandler; }
