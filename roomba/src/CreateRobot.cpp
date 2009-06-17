@@ -24,8 +24,8 @@
 #define STREAM_HEADER					19
 
 // Task IDs
-#define TASK_INIT						1
-#define TASK_BAUDRATE_GPIO				2
+#define CREATEROBOT_TASK_INIT						1
+#define CREATEROBOT_TASK_BAUDRATE_GPIO				2
 
 
 
@@ -48,6 +48,10 @@ Robot::Robot() :
 {
 }
 
+Robot::~Robot()
+{
+}
+
 /**
  * initializes the UART and starts communication between iSense and the Create Robot.
  * Puts the Robot in SAFE mode
@@ -62,7 +66,7 @@ void Robot::initialize(Uart *pUart, Gpio *pGpio)
 	// wait for the iCreate to boot up - 3 seconds should do the trick
 	if(currentTime.sec() < 3)
 	{
-		static uint8 task = TASK_INIT;
+		static uint8 task = CREATEROBOT_TASK_INIT;
 		static Time initTime =  Time(3, 0);
 		JennicOs::os_pointer()->add_timeout_at(initTime, this, &task);
 	}
@@ -94,7 +98,7 @@ void Robot::setBaudRateViaGpio()
 {
 	static bool gpioIsOn = true;
 	static uint8 pulseCounter = 0;
-	static uint8 task = TASK_BAUDRATE_GPIO;
+	static uint8 task = CREATEROBOT_TASK_BAUDRATE_GPIO;
 	// width of the pulse. iCreate Manual states it should be between
 	// 50 and 500 ms. 300 sounded reasonable to me...
 	static Time pulseWidth = Time(300);
@@ -491,20 +495,20 @@ void Robot::handle_uint8_data(uint8 data)
 //		streamState = STREAM_CHECKSUM;
 }
 
-void Robot::timeout(void * userdata)
+void Robot::timeout(void *userdata)
 {
 	JennicOs::os_pointer()->add_task(this, userdata);
 }
 
-void Robot::execute(void * userdata)
+void Robot::execute(void *userdata)
 {
 	uint8 taskID = *(uint8*) userdata;
 	JennicOs::os_pointer()->debug("execute, taskID: %i", taskID);
-	if(taskID == TASK_BAUDRATE_GPIO)
+	if(taskID == CREATEROBOT_TASK_BAUDRATE_GPIO)
 	{
 		setBaudRateViaGpio();
 	}
-	if(taskID == TASK_INIT)
+	if(taskID == CREATEROBOT_TASK_INIT)
 	{
 		initPart2();
 	}

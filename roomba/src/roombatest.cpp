@@ -79,8 +79,8 @@ public:
 private:
 	Flooding flooding;
 	Communication m_comModule;
-	Uart& ourUart_;
-	Gpio& ourGpio_;
+	Uart *ourUart_;
+	Gpio *ourGpio_;
 	RobotLogic m_robotLogic;
 };
 
@@ -90,9 +90,9 @@ roombatest::roombatest(isense::Os& os) :
 	flooding(os),
 //	m_skeleton(os),
 	m_comModule(os),
-	ourUart_(os_.uart(1)),
-	ourGpio_(os_.gpio()),
-	m_robotLogic(&ourUart_, &ourGpio_)
+	ourUart_(&os_.uart(1)),
+	ourGpio_(&os_.gpio()),
+	m_robotLogic(ourUart_, ourGpio_)
 {
 	os_.dispatcher().add_receiver(this);
 	os_.uart(0).set_packet_handler(isense::Uart::MESSAGE_TYPE_CUSTOM_IN_1, this);

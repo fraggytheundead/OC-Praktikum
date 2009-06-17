@@ -19,7 +19,8 @@
 RobotLogic::RobotLogic(Uart *pUart, Gpio *pGpio)
 {
   // TODO Auto-generated constructor stub
-  m_ourRobot.initialize(pUart, pGpio);
+//	m_ourRobot = new Robot();
+//  m_ourRobot->initialize(pUart, pGpio);
   m_randOmat.srand((uint32) (JennicOs::os_pointer()->time()).ms());
 
   m_pCommunication = ((roombatest *) JennicOs::os_pointer()->application())->getCommunication();
@@ -38,7 +39,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		if(paramLength == 2)
 		{
 			JennicOs::os_pointer()->debug("doTask: drive  Param0:%i  Param1:%i",parameters[0],parameters[1]);
-			m_ourRobot.drive((uint16) parameters[0], (uint16) parameters[1]);
+//			m_ourRobot->drive((uint16) parameters[0], (uint16) parameters[1]);
 		}
 	}
 
@@ -75,7 +76,7 @@ void RobotLogic::doTask(uint8 taskID, uint8 paramLength, int16 *parameters)
     if(paramLength == 2)
     {
       JennicOs::os_pointer()->debug("doTask: drive");
-      m_ourRobot.drive((uint16) parameters[0], (uint16) parameters[1]);
+//      m_ourRobot->drive((uint16) parameters[0], (uint16) parameters[1]);
     }
   }
 
@@ -106,31 +107,33 @@ void RobotLogic::doTask(uint8 taskID, uint8 paramLength, int16 *parameters)
 
 void RobotLogic::getCapabilities()
 {
-//	uint8 taskListLength = 4;
-//	const char* taskList[]={"drive\0","turn\0","turnInfinite\0","stop\0"};
-//	const char*** paramList;
-//
-//	const uint8	paramListLength[]={2,2,1,0};
-//
-//#define STRING_MATRIX_NEW(len) ((const char ***)malloc(sizeof (const char **) * len))
-//#define STRING_ARRAY_NEW(len) ((const char **)malloc(sizeof (const char *) * len))
-//
-//	paramList = STRING_MATRIX_NEW (taskListLength);
-//	for (int i = 0; i < taskListLength; ++i)
-//		paramList[i] = STRING_ARRAY_NEW (paramListLength[i]);
-//
-//	paramList[0][0] = "velocity\0";
-//	paramList[0][1] = "radius\0";
-//	paramList[1][0] = "angle\0";
-//	paramList[1][1] = "randomComponent\0";
-//	paramList[2][0] = "direction\0";
-//
-//	m_pCommunication->sendFeatures(JennicOs::os_pointer()->id(), taskListLength, taskList, paramListLength, paramList);
-//
-//	for (int i = 0; i < taskListLength; ++i)
-//		free (paramList[i]);
-//	free (paramList);
+	uint8 taskListLength = 4;
+	const char* taskList[]={"drive","turn","turnInfinite","stop"};
+	const char*** paramList;
+
+	const uint8    paramListLength[]={2,2,1,0};
+
+#define STRING_MATRIX_NEW(len) ((const char ***)isense::malloc(sizeof (const char **) * len))
+#define STRING_ARRAY_NEW(len) ((const char **)isense::malloc(sizeof (const char *) * len))
+
+	paramList = STRING_MATRIX_NEW (taskListLength);
+	for (int i = 0; i < taskListLength; ++i)
+		paramList[i] = STRING_ARRAY_NEW (paramListLength[i]);
+
+	paramList[0][0] = "velocity";
+	paramList[0][1] = "radius";
+	paramList[1][0] = "angle";
+	paramList[1][1] = "randomComponent";
+	paramList[2][0] = "direction";
+
+	m_pCommunication->sendFeatures(JennicOs::os_pointer()->id(), taskListLength, taskList, paramListLength, paramList);
+
+	for (int i = 0; i < taskListLength; ++i)
+		isense::free (paramList[i]);
+	isense::free (paramList);
 }
+
+
 
 void RobotLogic::turn(int16 angle, uint8 randomComponent)
 {
@@ -146,17 +149,17 @@ void RobotLogic::turn(int16 angle, uint8 randomComponent)
     script[3] = 0;
     script[4] = 1;
   }
-  m_ourRobot.setScript(script, sizeof(script));
-  m_ourRobot.executeScript();
+//  m_ourRobot->setScript(script, sizeof(script));
+//  m_ourRobot->executeScript();
   JennicOs::os_pointer()->debug("turn end");
 }
 
 void RobotLogic::turnInfinite(int16 turnVelocity)
 {
-	m_ourRobot.driveDirect(turnVelocity,-turnVelocity);
+//	m_ourRobot->driveDirect(turnVelocity,-turnVelocity);
 }
 
 void RobotLogic::stop()
 {
-	m_ourRobot.driveDirect(0,0);
+//	m_ourRobot->driveDirect(0,0);
 }

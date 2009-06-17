@@ -33,7 +33,7 @@ public:
   void getCapabilities();
 
 protected:
-  Robot m_ourRobot;
+//  Robot *m_ourRobot;
   PseudoRandomNumberGenerator m_randOmat;
   void turn(int16 angle, uint8 randomComponent);
   void turnInfinite(int16 direction);

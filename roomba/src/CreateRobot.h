@@ -158,7 +158,9 @@ public:
 };
 
 
-class Robot: public Uint8DataHandler, public TimeoutHandler, public Task
+class Robot: public isense::Uint8DataHandler,
+	public isense::TimeoutHandler,
+	public isense::Task
 {
 protected:
 	Uart       *m_pUart;
@@ -168,6 +170,7 @@ protected:
 
 public:
 	Robot();
+	virtual ~Robot();
 	void initialize(Uart *pUart, Gpio *pGpio);
 	void setBaudRateViaGpio();
 	void startDemo(int demo);
@@ -193,9 +196,9 @@ public:
 
 	virtual void handle_uint8_data(uint8 data);
 	///From isense::TimeoutHandler
-	virtual void timeout(void * userdata);
+	virtual void timeout(void *userdata);
 	///From isense::Task
-	virtual void execute(void * userdata);
+	virtual void execute(void *userdata);
 
 	inline void setRobotHandler(RobotHandler *pHandler)	{ m_pHandler = pHandler; }
 	inline RobotHandler* getRobotHandler()				{ return m_pHandler; }
