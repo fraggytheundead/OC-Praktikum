@@ -7,7 +7,6 @@
 #include <isense/os.h>
 #include <isense/dispatcher.h>
 #include <isense/radio.h>
-#include <isense/hardware_radio.h>
 #include <isense/task.h>
 #include <isense/timeout_handler.h>
 #include <isense/isense.h>
@@ -79,8 +78,7 @@ public:
 private:
 	Flooding flooding;
 	Communication m_comModule;
-	Uart *ourUart_;
-	Gpio *ourGpio_;
+	Uart& ourUart_;
 	RobotLogic m_robotLogic;
 };
 
@@ -90,9 +88,8 @@ roombatest::roombatest(isense::Os& os) :
 	flooding(os),
 //	m_skeleton(os),
 	m_comModule(os),
-	ourUart_(&os_.uart(1)),
-	ourGpio_(&os_.gpio()),
-	m_robotLogic(ourUart_, ourGpio_)
+	ourUart_(os_.uart(1)),
+	m_robotLogic(&ourUart_, &m_comModule)
 {
 	os_.dispatcher().add_receiver(this);
 	os_.uart(0).set_packet_handler(isense::Uart::MESSAGE_TYPE_CUSTOM_IN_1, this);
@@ -107,10 +104,9 @@ roombatest::~roombatest()
 //----------------------------------------------------------------------------
 void roombatest::boot(void) {
 	os_.allow_sleep(false);
-	os_.add_timeout_in(Time(MILLISECONDS), this, NULL);
-//	os_.radio().hardware_radio().set_channel(20);
-    os_.set_log_mode(ISENSE_LOG_MODE_RADIO);
-    os_.debug("Debug over Radio");
+//	os_.add_timeout_in(Time(5 * MILLISECONDS), this, NULL);
+//    os_.set_log_mode(ISENSE_LOG_MODE_RADIO);
+    os_.debug("Boot");
 }
 
 //----------------------------------------------------------------------------
@@ -128,6 +124,7 @@ void roombatest::wake_up(bool memory_held) {
 }
 
 void roombatest::execute(void* userdata) {
+//	m_robotLogic.getCapabilities();
 }
 
 void roombatest::receive(uint8 len, const uint8 * buf, uint16 src_addr,

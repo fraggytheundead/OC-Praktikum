@@ -26,14 +26,14 @@ using namespace isense;
 
 class RobotLogic {
 public:
-  RobotLogic(Uart *pUart, Gpio *pGpio);
+  RobotLogic(Uart *pUart, Communication *pCommunication);
   virtual ~RobotLogic();
   void doTask(const char* taskName, uint8 paramLength, const uint16 *parameters);
   void doTask(uint8 taskID, uint8 paramLength, int16 *parameters);
   void getCapabilities();
 
 protected:
-//  Robot *m_ourRobot;
+  Robot m_ourRobot;
   PseudoRandomNumberGenerator m_randOmat;
   void turn(int16 angle, uint8 randomComponent);
   void turnInfinite(int16 direction);
@@ -41,4 +41,4 @@ protected:
   Communication *m_pCommunication;
 };
 
-#endif /* __OCPROJ_ROBOTLOGIC_H_ */
+#endif /* __OCPROJ_ROBOTLOGIC_H */

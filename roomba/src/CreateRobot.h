@@ -11,10 +11,6 @@
 #define __OCPROJ_CREATEROBOT_H
 
 #include <isense/uart.h>
-#include <isense/timeout_handler.h>
-#include <isense/task.h>
-#include <isense/time.h>
-#include <isense/gpio.h>
 #include <isense/platforms/jennic/jennic_os.h>
 
 using namespace isense;
@@ -158,21 +154,16 @@ public:
 };
 
 
-class Robot: public isense::Uint8DataHandler,
-	public isense::TimeoutHandler,
-	public isense::Task
+class Robot: public Uint8DataHandler
 {
 protected:
 	Uart       *m_pUart;
-	Gpio       *m_pGpio;
 	RobotHandler *m_pHandler;
-	void initPart2();
 
 public:
 	Robot();
 	virtual ~Robot();
-	void initialize(Uart *pUart, Gpio *pGpio);
-	void setBaudRateViaGpio();
+	bool initialize(Uart *pUart);
 	void startDemo(int demo);
 	void drive(uint16 velocity, uint16 radius);
 	void driveDirect(uint16 leftVelocity, uint16 rightVelocity);
@@ -195,10 +186,6 @@ public:
 	void changeModeFull();
 
 	virtual void handle_uint8_data(uint8 data);
-	///From isense::TimeoutHandler
-	virtual void timeout(void *userdata);
-	///From isense::Task
-	virtual void execute(void *userdata);
 
 	inline void setRobotHandler(RobotHandler *pHandler)	{ m_pHandler = pHandler; }
 	inline RobotHandler* getRobotHandler()				{ return m_pHandler; }

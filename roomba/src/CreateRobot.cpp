@@ -15,19 +15,11 @@
 
 #include "CreateRobot.h"
 
-#define GPIO_BAUDRATE_PIN				2
-
 // Stream definitions
 #define STREAM_UNKNOWN					255
 #define STREAM_CHECKSUM					254
 #define STREAM_BYTES_TO_READ			253
 #define STREAM_HEADER					19
-
-// Task IDs
-#define CREATEROBOT_TASK_INIT						1
-#define CREATEROBOT_TASK_BAUDRATE_GPIO				2
-
-
 
 
 #define SET_16BIT_VALUE(name, data) \
@@ -43,44 +35,23 @@
 
 Robot::Robot() :
 	m_pUart(NULL),
-	m_pGpio(NULL),
 	m_pHandler(NULL)
 {
 }
 
 Robot::~Robot()
 {
+
 }
 
 /**
  * initializes the UART and starts communication between iSense and the Create Robot.
  * Puts the Robot in SAFE mode
- * @param pUart the UART that is to be used
- * @param pGpio the GPIO
+ * @param pUart a pointer to the UART that is to be used
+ * @return true if the initialization was successful
  */
-void Robot::initialize(Uart *pUart, Gpio *pGpio)
-{
+bool Robot::initialize(Uart *pUart){
 	m_pUart = pUart;
-	m_pGpio = pGpio;
-	Time currentTime = JennicOs::os_pointer()->time();
-	// wait for the iCreate to boot up - 3 seconds should do the trick
-	if(currentTime.sec() < 3)
-	{
-		static uint8 task = CREATEROBOT_TASK_INIT;
-		static Time initTime =  Time(3, 0);
-		JennicOs::os_pointer()->add_timeout_at(initTime, this, &task);
-	}
-	else
-	{
-		initPart2();
-	}
-}
-
-void Robot::initPart2()
-{
-	// set the Baudrate of the iCreate to 19200
-	setBaudRateViaGpio();
-	// init UART
 	if(!m_pUart->enabled()) m_pUart->enable();
 	m_pUart->set_baudrate(19200);
 	// 8 Databits, no flowcontrol, set Stoppbit to 1
@@ -91,51 +62,14 @@ void Robot::initPart2()
 	setLeds(0, 0, 255);
 	// put roomba into safe mode
 	changeModeSafe();
-	m_pUart->set_uint8_handler(this);
-}
-
-void Robot::setBaudRateViaGpio()
-{
-	static bool gpioIsOn = true;
-	static uint8 pulseCounter = 0;
-	static uint8 task = CREATEROBOT_TASK_BAUDRATE_GPIO;
-	// width of the pulse. iCreate Manual states it should be between
-	// 50 and 500 ms. 300 sounded reasonable to me...
-	static Time pulseWidth = Time(300);
-
-	JennicOs::os_pointer()->debug("setBaudRateViaGpio, gpioIsOn: %i, pulseCounter: %i", gpioIsOn, pulseCounter);
-
-//	// Daniela sagt, dass es auch ohne das set_output (welches deprecated ist) geht
-//	if(pulseCounter == 255)
-//	{
-//		m_pGpio->set_output(GPIO_BAUDRATE_PIN);
-//		JennicOs::os_pointer()->debug("setBaudRateViaGpio, setting GPIO to output");
-//		pulseCounter = 0;
-//	}
-
-	// pulse the Baudrate pin low three times
-	do
-	{
-		if(gpioIsOn) {
-			m_pGpio->set(GPIO_BAUDRATE_PIN, false);
-			JennicOs::os_pointer()->debug("setBaudRateViaGpio, setting GPIO to low");
-		}
-		else
-		{
-			m_pGpio->set(GPIO_BAUDRATE_PIN, true);
-			JennicOs::os_pointer()->debug("setBaudRateViaGpio, setting GPIO to high");
-			pulseCounter++;
-		}
-		gpioIsOn = !gpioIsOn;
-		JennicOs::os_pointer()->add_timeout_in(pulseWidth, this, &task);
-	} while(pulseCounter < 3);
-
+//	m_pUart->set_uint8_handler(this);
+	return true;
 }
 
 void Robot::changeModeSafe()
 {
 	m_pUart->put( CMD_ENTER_SAFE_MODE );
-	// make the power LED yellow (sort of. More like "not quite red")
+	// make the power LED yellow
 	setLeds(0, 16, 255);
 }
 
@@ -493,23 +427,4 @@ void Robot::handle_uint8_data(uint8 data)
 //skipSetStateToUnknown:
 //	if(--bytesToRead == 0)
 //		streamState = STREAM_CHECKSUM;
-}
-
-void Robot::timeout(void *userdata)
-{
-	JennicOs::os_pointer()->add_task(this, userdata);
-}
-
-void Robot::execute(void *userdata)
-{
-	uint8 taskID = *(uint8*) userdata;
-	JennicOs::os_pointer()->debug("execute, taskID: %i", taskID);
-	if(taskID == CREATEROBOT_TASK_BAUDRATE_GPIO)
-	{
-		setBaudRateViaGpio();
-	}
-	if(taskID == CREATEROBOT_TASK_INIT)
-	{
-		initPart2();
-	}
 }

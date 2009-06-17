@@ -72,14 +72,12 @@ void Communication::sendFeatures(uint16 robotId, uint8 taskListLength,
 				for (int i = 0; i < taskListLength; ++i) {
 					buf[pos++] = paramListLength[i];
 				}
-
 				for (int i = 0; i < taskListLength; ++i) {
 					int str_len = strlen(taskList[i]);
 					memcpy(&buf[pos], taskList[i], str_len);
 					buf[pos + str_len] = '\0';
 					pos += str_len + 1;
 				}
-
 				for (int i = 0; i < taskListLength; ++i) {
 					for (int j = 0; j < paramListLength[i]; ++j) {
 						int str_len = strlen(paramList[i][j]);
@@ -90,6 +88,11 @@ void Communication::sendFeatures(uint16 robotId, uint8 taskListLength,
 				}
 				Flooding* flooding;
 				flooding = ((roombatest *) m_os.application())->getFlooding();
+
+//				for(int i = 0; i < len; i++) {
+//					m_os.debug("SendFeatures, buf[%i]: %i", i, buf[i]);
+//				}
+
 				flooding->send(len, buf);
 			}
 }
@@ -137,7 +140,7 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 
 		taskName = (char *) buf+ 4 + paramLength*2;
 
-//		m_os.debug("Buf[%i]: %c", )
+//		m_os.debug("Buf[%i]: %c", );
 
 		m_os.debug("vorher");
 		m_os.debug("taskName = %s", taskName);
@@ -163,4 +166,3 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 		break;
 	}
 }
-

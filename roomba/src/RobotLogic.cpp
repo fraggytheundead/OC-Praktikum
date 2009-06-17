@@ -16,14 +16,14 @@
 #include "RobotLogic.h"
 #include "roombatest.cpp"
 
-RobotLogic::RobotLogic(Uart *pUart, Gpio *pGpio)
+RobotLogic::RobotLogic(Uart *pUart, Communication *pCommunication)
 {
   // TODO Auto-generated constructor stub
-//	m_ourRobot = new Robot();
-//  m_ourRobot->initialize(pUart, pGpio);
+  m_ourRobot.initialize(pUart);
   m_randOmat.srand((uint32) (JennicOs::os_pointer()->time()).ms());
 
-  m_pCommunication = ((roombatest *) JennicOs::os_pointer()->application())->getCommunication();
+//  m_pCommunication = ((roombatest *) JennicOs::os_pointer()->application())->getCommunication();
+  m_pCommunication = pCommunication;
 }
 
 RobotLogic::~RobotLogic()
@@ -33,13 +33,13 @@ RobotLogic::~RobotLogic()
 
 void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *parameters)
 {
-	JennicOs::os_pointer()->debug("doTask STRING, ID: %s, paramLength: %i", taskName, paramLength);
+//	JennicOs::os_pointer()->debug("doTask STRING, ID: %s, paramLength: %i", taskName, paramLength);
 	if(strcmp(taskName, "drive") == 0)
 	{
 		if(paramLength == 2)
 		{
-			JennicOs::os_pointer()->debug("doTask: drive  Param0:%i  Param1:%i",parameters[0],parameters[1]);
-//			m_ourRobot->drive((uint16) parameters[0], (uint16) parameters[1]);
+//			JennicOs::os_pointer()->debug("doTask: drive  Param0:%i  Param1:%i",parameters[0],parameters[1]);
+			m_ourRobot.drive((uint16) parameters[0], (uint16) parameters[1]);
 		}
 	}
 
@@ -47,7 +47,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	{
 		if(paramLength == 2)
 		{
-			JennicOs::os_pointer()->debug("doTask: turn");
+//			JennicOs::os_pointer()->debug("doTask: turn");
 			turn((int16) parameters[0], (uint8) (parameters[1] & 0xff));
 		}
 	}
@@ -56,27 +56,27 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	{
 		if(paramLength == 1)
 		{
-			JennicOs::os_pointer()->debug("doTask: turnInfinite");
+//			JennicOs::os_pointer()->debug("doTask: turnInfinite");
 			turnInfinite((int16) parameters[0]);
 		}
 	}
 
 	if(strcmp(taskName, "stop") == 0)
 	{
-		JennicOs::os_pointer()->debug("doTask: stop");
+//		JennicOs::os_pointer()->debug("doTask: stop");
 		stop();
 	}
 }
 
 void RobotLogic::doTask(uint8 taskID, uint8 paramLength, int16 *parameters)
 {
-  JennicOs::os_pointer()->debug("doTask ID, ID: %i, paramLength: %i", taskID, paramLength);
+//  JennicOs::os_pointer()->debug("doTask ID, ID: %i, paramLength: %i", taskID, paramLength);
   if(taskID == 1)
   {
     if(paramLength == 2)
     {
-      JennicOs::os_pointer()->debug("doTask: drive");
-//      m_ourRobot->drive((uint16) parameters[0], (uint16) parameters[1]);
+//      JennicOs::os_pointer()->debug("doTask: drive");
+      m_ourRobot.drive((uint16) parameters[0], (uint16) parameters[1]);
     }
   }
 
@@ -84,7 +84,7 @@ void RobotLogic::doTask(uint8 taskID, uint8 paramLength, int16 *parameters)
   {
     if(paramLength == 2)
     {
-      JennicOs::os_pointer()->debug("doTask: turn");
+//      JennicOs::os_pointer()->debug("doTask: turn");
       turn(parameters[0], (uint8) (parameters[1] & 0xff));
     }
   }
@@ -93,32 +93,42 @@ void RobotLogic::doTask(uint8 taskID, uint8 paramLength, int16 *parameters)
   {
 	  if(paramLength == 1)
 	  {
-		JennicOs::os_pointer()->debug("doTask: turn forever");
+//		JennicOs::os_pointer()->debug("doTask: turn forever");
 		turnInfinite(parameters[0]);
 	  }
   }
 
   if(taskID == 4)
   {
-		JennicOs::os_pointer()->debug("doTask: stop");
+//		JennicOs::os_pointer()->debug("doTask: stop");
 		stop();
   }
 }
 
 void RobotLogic::getCapabilities()
 {
+	JennicOs::os_pointer()->debug("getCapabilities start");
 	uint8 taskListLength = 4;
 	const char* taskList[]={"drive","turn","turnInfinite","stop"};
 	const char*** paramList;
 
 	const uint8    paramListLength[]={2,2,1,0};
 
-#define STRING_MATRIX_NEW(len) ((const char ***)isense::malloc(sizeof (const char **) * len))
-#define STRING_ARRAY_NEW(len) ((const char **)isense::malloc(sizeof (const char *) * len))
+	JennicOs::os_pointer()->debug("multiplikation: %i, sizeof (const char **): %i, len: %i", sizeof (const char **) * taskListLength, sizeof (const char **), taskListLength);
 
-	paramList = STRING_MATRIX_NEW (taskListLength);
+//#define STRING_MATRIX_NEW(len) ((const char ***)isense::malloc(sizeof (const char **) * len))
+//#define STRING_ARRAY_NEW(len) ((const char **)isense::malloc(sizeof (const char *) * len))
+
+	paramList = ((const char ***)isense::malloc(sizeof (const char **) * taskListLength));
 	for (int i = 0; i < taskListLength; ++i)
-		paramList[i] = STRING_ARRAY_NEW (paramListLength[i]);
+	{
+		int bytesNeeded = (sizeof (const char *) * paramListLength[i]);
+		JennicOs::os_pointer()->debug("multiplikation: %i, sizeof (const char **): %i, paramListLength: %i", bytesNeeded, sizeof (const char *), paramListLength[i]);
+		if(bytesNeeded > 0) {
+			paramList[i] = ((const char **)isense::malloc(bytesNeeded));
+		}
+	}
+	JennicOs::os_pointer()->debug("getCapabilities after mallocs");
 
 	paramList[0][0] = "velocity";
 	paramList[0][1] = "radius";
@@ -126,14 +136,25 @@ void RobotLogic::getCapabilities()
 	paramList[1][1] = "randomComponent";
 	paramList[2][0] = "direction";
 
-	m_pCommunication->sendFeatures(JennicOs::os_pointer()->id(), taskListLength, taskList, paramListLength, paramList);
+	JennicOs::os_pointer()->debug("getCapabilities after writing strings");
+
+	uint16 nodeID = JennicOs::os_pointer()->id();
+
+	JennicOs::os_pointer()->debug("getCapabilities, nodeID: %i", nodeID);
+
+	m_pCommunication->sendFeatures(nodeID, taskListLength, taskList, paramListLength, paramList);
+
+	JennicOs::os_pointer()->debug("getCapabilities after sendFeatures");
 
 	for (int i = 0; i < taskListLength; ++i)
+	{
+//		JennicOs::os_pointer()->debug("getCapabilities: paramlist[%i]: %s", i, paramList[i]);
 		isense::free (paramList[i]);
+	}
 	isense::free (paramList);
+
+	JennicOs::os_pointer()->debug("getCapabilities end");
 }
-
-
 
 void RobotLogic::turn(int16 angle, uint8 randomComponent)
 {
@@ -149,17 +170,17 @@ void RobotLogic::turn(int16 angle, uint8 randomComponent)
     script[3] = 0;
     script[4] = 1;
   }
-//  m_ourRobot->setScript(script, sizeof(script));
-//  m_ourRobot->executeScript();
+  m_ourRobot.setScript(script, sizeof(script));
+  m_ourRobot.executeScript();
   JennicOs::os_pointer()->debug("turn end");
 }
 
 void RobotLogic::turnInfinite(int16 turnVelocity)
 {
-//	m_ourRobot->driveDirect(turnVelocity,-turnVelocity);
+	m_ourRobot.driveDirect(turnVelocity,-turnVelocity);
 }
 
 void RobotLogic::stop()
 {
-//	m_ourRobot->driveDirect(0,0);
+	m_ourRobot.driveDirect(0,0);
 }
