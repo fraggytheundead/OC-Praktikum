@@ -2,7 +2,7 @@
 #include <isense/uart.h>
 #include <isense/util/util.h>
 #include "Communication.h"
-#include "roombatest.cpp"
+#include "roombatest.h"
 #include "RobotLogic.h"
 
 Communication::Communication(isense::Os& os) :

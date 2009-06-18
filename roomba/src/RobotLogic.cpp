@@ -14,7 +14,7 @@
  */
 
 #include "RobotLogic.h"
-#include "roombatest.cpp"
+#include "roombatest.h"
 
 RobotLogic::RobotLogic(Uart *pUart, Communication *pCommunication)
 {
