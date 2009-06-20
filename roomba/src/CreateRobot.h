@@ -161,7 +161,7 @@ protected:
 	RobotHandler *m_pHandler;
 
 public:
-	Robot();
+	Robot(Os& os);
 	virtual ~Robot();
 	bool initialize(Uart *pUart);
 	void startDemo(int demo);
@@ -189,5 +189,8 @@ public:
 
 	inline void setRobotHandler(RobotHandler *pHandler)	{ m_pHandler = pHandler; }
 	inline RobotHandler* getRobotHandler()				{ return m_pHandler; }
+
+private:
+	Os& m_pOs;
 };
 #endif /* __OCPROJ_CREATEROBOT_H */

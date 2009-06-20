@@ -33,9 +33,10 @@
 			name = (name << 8) | data; \
 	}
 
-Robot::Robot() :
+Robot::Robot(Os& os) :
 	m_pUart(NULL),
-	m_pHandler(NULL)
+	m_pHandler(NULL),
+	m_pOs(os)
 {
 }
 

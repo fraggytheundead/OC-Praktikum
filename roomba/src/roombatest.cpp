@@ -22,7 +22,7 @@ roombatest::roombatest(isense::Os& os) :
 //	m_skeleton(os),
 	m_comModule(os),
 	ourUart_(os_.uart(1)),
-	m_robotLogic(&ourUart_, &m_comModule)
+	m_robotLogic(os, &ourUart_, &m_comModule)
 {
 	os_.dispatcher().add_receiver(this);
 	os_.uart(0).set_packet_handler(isense::Uart::MESSAGE_TYPE_CUSTOM_IN_1, this);

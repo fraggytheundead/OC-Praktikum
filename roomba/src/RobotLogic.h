@@ -16,6 +16,7 @@
 #ifndef __OCPROJ_ROBOTLOGIC_H
 #define __OCPROJ_ROBOTLOGIC_H
 
+#include <isense/os.h>
 #include <isense/util/util.h>
 //#include <isense/platforms/jennic/jennic_os.h>
 #include <isense/util/pseudo_random_number_generator.h>
@@ -26,19 +27,21 @@ using namespace isense;
 
 class RobotLogic {
 public:
-  RobotLogic(Uart *pUart, Communication *pCommunication);
+  RobotLogic(Os& os, Uart *pUart, Communication *pCommunication);
   virtual ~RobotLogic();
   void doTask(const char* taskName, uint8 paramLength, const uint16 *parameters);
   void doTask(uint8 taskID, uint8 paramLength, int16 *parameters);
   void getCapabilities();
 
 protected:
-  Robot m_ourRobot;
   PseudoRandomNumberGenerator m_randOmat;
   void turn(int16 angle, uint8 randomComponent);
   void turnInfinite(int16 direction);
   void stop();
   Communication *m_pCommunication;
+  Os& m_pOs;
+  Robot m_Robot;
+
 };
 
 #endif /* __OCPROJ_ROBOTLOGIC_H */
