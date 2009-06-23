@@ -81,7 +81,7 @@ public:
 
 	Communication* getCommunication();
 
-	Flooding* getFlooding();
+	Flooding& getFlooding();
 
 private:
 	Flooding flooding;

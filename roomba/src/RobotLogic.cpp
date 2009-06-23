@@ -34,7 +34,7 @@ RobotLogic::~RobotLogic()
 
 void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *parameters)
 {
-//	m_pOs.debug("doTask STRING, ID: %s, paramLength: %i", taskName, paramLength);
+	m_pOs.debug("doTask STRING, ID: %s, paramLength: %i", taskName, paramLength);
 	if(strcmp(taskName, "drive") == 0)
 	{
 		if(paramLength == 2)
@@ -112,13 +112,7 @@ void RobotLogic::getCapabilities()
 	uint8 taskListLength = 4;
 	const char* taskList[]={"drive","turn","turnInfinite","stop"};
 	const char*** paramList;
-
-	const uint8    paramListLength[]={2,2,1,0};
-
-	m_pOs.debug("multiplikation: %i, sizeof (const char **): %i, len: %i", sizeof (const char **) * taskListLength, sizeof (const char **), taskListLength);
-
-//#define STRING_MATRIX_NEW(len) ((const char ***)isense::malloc(sizeof (const char **) * len))
-//#define STRING_ARRAY_NEW(len) ((const char **)isense::malloc(sizeof (const char *) * len))
+	const uint8 paramListLength[]={2,2,1,0};
 
 	paramList = ((const char ***)isense::malloc(sizeof (const char **) * taskListLength));
 	for (int i = 0; i < taskListLength; ++i)
@@ -137,21 +131,23 @@ void RobotLogic::getCapabilities()
 	paramList[1][1] = "randomComponent";
 	paramList[2][0] = "direction";
 
-	m_pOs.debug("getCapabilities after writing strings");
-
 	uint16 nodeID = m_pOs.id();
 
-	m_pOs.debug("getCapabilities, nodeID: %i", nodeID);
+	Communication *m_pComm;
+	m_pComm = ((roombatest *) m_pOs.application())->getCommunication();
 
-	m_pCommunication->sendFeatures(nodeID, taskListLength, taskList, paramListLength, paramList);
+	uint8 buf[128];
+	uint8 len = m_pComm->sendFeatures(nodeID, taskListLength, taskList, paramListLength, paramList, buf);
 
-	m_pOs.debug("getCapabilities after sendFeatures");
+	Flooding& flooding = ((roombatest *) m_pOs.application())->getFlooding();
+	flooding.send(len,  buf);
 
 	for (int i = 0; i < taskListLength; ++i)
 	{
-//		m_pOs.debug("getCapabilities: paramlist[%i]: %s", i, paramList[i]);
+//		m_pOs.debug("getCapabilities: freeing paramlist[%i]", i);
 		isense::free (paramList[i]);
 	}
+	m_pOs.debug("getCapabilities after freeing paramlist members");
 	isense::free (paramList);
 
 	m_pOs.debug("getCapabilities end");

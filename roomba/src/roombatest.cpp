@@ -40,6 +40,7 @@ void roombatest::boot(void) {
 //	os_.add_timeout_in(Time(5 * MILLISECONDS), this, NULL);
 //    os_.set_log_mode(ISENSE_LOG_MODE_RADIO);
     os_.debug("Boot");
+//    m_robotLogic.getCapabilities();
 }
 
 //----------------------------------------------------------------------------
@@ -66,18 +67,35 @@ void roombatest::receive(uint8 len, const uint8 * buf, uint16 src_addr,
 	for (int i = 0; i < len; ++i) {
 		os_.debug("buf[%d] = %d", i, buf[i]);
 	}
-	uint16 destination = (buf[1] << 8) | buf[2];
-	if (destination == os_.id() || destination == BROADCAST) {
-		m_comModule.decodeMessage(len, buf);
-	}
+
+	uint16 destination;
+	switch (buf[0]) {
+		case 200:
+			destination = (buf[1] << 8) | buf[2];
+			if (destination == os_.id() || destination == BROADCAST) {
+			m_comModule.decodeMessage(len, buf);
+			}
+			break;
+		case 201:
+			m_comModule.decodeMessage(len, buf);
+			break;
+		case 202:
+			m_comModule.decodeMessage(len, buf);
+			break;
+		case 203:
+			m_comModule.decodeMessage(len, buf);
+			break;
+		default:
+			break;
+		}
 }
 
 void roombatest::confirm(uint8 state, uint8 tries, isense::Time time) {
 }
 
 void roombatest::timeout(void* userdata) {
-	os_.add_task(this, NULL);
-	os_.add_timeout_in(Time(MILLISECONDS), this, NULL);
+	//os_.add_task(this, NULL);
+	//os_.add_timeout_in(Time(MILLISECONDS), this, NULL);
 }
 
 void roombatest::handle_uart_packet(uint8 type, uint8* buf, uint8 length) {
@@ -100,9 +118,9 @@ Communication* roombatest::getCommunication()
 	return &m_comModule;
 }
 
-Flooding* roombatest::getFlooding()
+Flooding& roombatest::getFlooding()
 {
-	return &flooding;
+	return flooding;
 }
 
 isense::Application* application_factory(isense::Os& os) {
