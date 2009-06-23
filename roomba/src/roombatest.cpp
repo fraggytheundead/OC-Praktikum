@@ -94,8 +94,7 @@ void roombatest::confirm(uint8 state, uint8 tries, isense::Time time) {
 }
 
 void roombatest::timeout(void* userdata) {
-	//os_.add_task(this, NULL);
-	//os_.add_timeout_in(Time(MILLISECONDS), this, NULL);
+
 }
 
 void roombatest::handle_uart_packet(uint8 type, uint8* buf, uint8 length) {
