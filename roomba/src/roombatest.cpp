@@ -38,7 +38,7 @@ roombatest::~roombatest()
 void roombatest::boot(void) {
 	os_.allow_sleep(false);
 //	os_.add_timeout_in(Time(5 * MILLISECONDS), this, NULL);
-//    os_.set_log_mode(ISENSE_LOG_MODE_RADIO);
+    os_.set_log_mode(ISENSE_LOG_MODE_RADIO);
     os_.debug("Boot");
 //    m_robotLogic.getCapabilities();
 }

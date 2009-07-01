@@ -20,7 +20,6 @@ RobotLogic::RobotLogic(Os& os, Uart *pUart, Communication *pCommunication) :
 	m_pOs(os),
 	m_Robot(os)
 {
-  // TODO Auto-generated constructor stub
   m_Robot.initialize(pUart);
   m_randOmat.srand((uint32) (m_pOs.time()).ms());
 
@@ -67,43 +66,6 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 //		m_pOs.debug("doTask: stop");
 		stop();
 	}
-}
-
-void RobotLogic::doTask(uint8 taskID, uint8 paramLength, int16 *parameters)
-{
-//  m_pOs.debug("doTask ID, ID: %i, paramLength: %i", taskID, paramLength);
-  if(taskID == 1)
-  {
-    if(paramLength == 2)
-    {
-//      m_pOs.debug("doTask: drive");
-      m_Robot.drive((uint16) parameters[0], (uint16) parameters[1]);
-    }
-  }
-
-  if(taskID == 2)
-  {
-    if(paramLength == 2)
-    {
-//      m_pOs.debug("doTask: turn");
-      turn(parameters[0], (uint8) (parameters[1] & 0xff));
-    }
-  }
-
-  if(taskID == 3)
-  {
-	  if(paramLength == 1)
-	  {
-//		m_pOs.debug("doTask: turn forever");
-		turnInfinite(parameters[0]);
-	  }
-  }
-
-  if(taskID == 4)
-  {
-//		m_pOs.debug("doTask: stop");
-		stop();
-  }
 }
 
 void RobotLogic::getCapabilities()
@@ -181,3 +143,22 @@ void RobotLogic::stop()
 {
 	m_Robot.driveDirect(0,0);
 }
+void RobotLogic::onStateChanged(PCROBOTSTATE pState)
+{
+	static bool b = false;
+
+//	if(b)
+//		CoreModule(*g_pOS).led_on();
+//	else
+//		CoreModule(*g_pOS).led_off();
+//	m_pOs.debug("bumpAndWheelDrop: %x, batteryCharge: %i, batteryTemperature: %i",
+//			pState->bumpAndWheelDrop, pState->batteryCapacity, pState->batteryTemperature);
+
+	b = !b;
+}
+
+void RobotLogic::onChecksumError()
+{
+
+}
+

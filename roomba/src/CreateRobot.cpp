@@ -15,12 +15,18 @@
 
 #include "CreateRobot.h"
 
+
+#define GPIO_BAUDRATE_PIN				2
+
 // Stream definitions
 #define STREAM_UNKNOWN					255
 #define STREAM_CHECKSUM					254
 #define STREAM_BYTES_TO_READ			253
 #define STREAM_HEADER					19
 
+// Task IDs
+#define CREATEROBOT_TASK_INIT						1
+#define CREATEROBOT_TASK_BAUDRATE_GPIO				2
 
 #define SET_16BIT_VALUE(name, data) \
 	{ \
@@ -51,20 +57,96 @@ Robot::~Robot()
  * @param pUart a pointer to the UART that is to be used
  * @return true if the initialization was successful
  */
-bool Robot::initialize(Uart *pUart){
+void Robot::initialize(Uart *pUart){
+	m_pOs.debug("CreateRobot init");
 	m_pUart = pUart;
+	m_pGpio = &m_pOs.gpio();
+	Time currentTime = m_pOs.time();
+	// wait for the iCreate to boot up - 4 seconds should do the trick
+	if(currentTime.sec() < 3)
+	{
+//		m_pOs.debug("CreateRobot init: Zeit < 3 sek: %i", currentTime.sec());
+		static uint8 task = CREATEROBOT_TASK_INIT;
+		Time initTime =  Time(4, 0);
+//		m_pOs.debug("CreateRobot init: fuege timeout in %i Sekunden hinzu", initTime.sec());
+		m_pOs.add_timeout_in(initTime, this, &task);
+	}
+	else
+	{
+//		m_pOs.debug("CreateRobot init: Zeit > 3 sek: %", currentTime.sec());
+		initPart2();
+	}
+}
+
+void Robot::initPart2()
+{
+	static bool baudRateIsSet = false;
+	static uint8 task = CREATEROBOT_TASK_INIT;
+
+//	m_pOs.debug("CreateRobot init 2");
+	// set the Baudrate of the iCreate to 19200 and wait a second
+	if(!baudRateIsSet) {
+		setBaudRateViaGpio();
+		m_pOs.add_timeout_in(Time(3,0), this, &task);
+		baudRateIsSet = !baudRateIsSet;
+		return;
+	}
+//	m_pOs.debug("CreateRobot init 2 after baud rate");
+	// init UART
 	if(!m_pUart->enabled()) m_pUart->enable();
 	m_pUart->set_baudrate(19200);
 	// 8 Databits, no flowcontrol, set Stoppbit to 1
 	m_pUart->set_control( 8, 'N', 1 );
+	// set data handler
+	m_pUart->set_uint8_handler(this);
+	m_pUart->enable_interrupt(true);
 	// send roomba start command
 	m_pUart->put( CMD_START );
 	// turn power LED on (green, full intensity)
 	setLeds(0, 0, 255);
 	// put roomba into safe mode
 	changeModeSafe();
-//	m_pUart->set_uint8_handler(this);
-	return true;
+}
+
+void Robot::setBaudRateViaGpio()
+{
+	static bool gpioIsOn = true;
+	static uint8 pulseCounter = 0;
+
+	static uint8 task = CREATEROBOT_TASK_BAUDRATE_GPIO;
+	// width of the pulse. iCreate Manual states it should be between
+	// 50 and 500 ms. 300 sounded reasonable to me...
+	Time pulseWidth = Time(300);
+
+//	m_pOs.debug("setBaudRateViaGpio, gpioIsOn: %i, pulseCounter: %i", gpioIsOn, pulseCounter);
+
+//	// Daniela sagt, dass es auch ohne das set_output (welches deprecated ist) geht
+//	if(pulseCounter == 255)
+//	{
+//		m_pGpio->set_output(GPIO_BAUDRATE_PIN);
+//		JennicOs::os_pointer()->debug("setBaudRateViaGpio, setting GPIO to output");
+//		pulseCounter = 0;
+//	}
+
+	// pulse the Baudrate pin low three times
+	if(pulseCounter < 3)
+	{
+//		m_pOs.debug("setBaudRateViaGpio, do-while schleife");
+		if(!gpioIsOn) {
+			m_pGpio->set(GPIO_BAUDRATE_PIN, false);
+			m_pOs.debug("setBaudRateViaGpio, setting GPIO to low, time: %i sek, %i ms", m_pOs.time().sec(), m_pOs.time().ms());
+		}
+		else
+		{
+			m_pGpio->set(GPIO_BAUDRATE_PIN, true);
+			m_pOs.debug("setBaudRateViaGpio, setting GPIO to high, time: %i sek, %i ms", m_pOs.time().sec(), m_pOs.time().ms());
+			pulseCounter++;
+		}
+		gpioIsOn = !gpioIsOn;
+		m_pOs.add_timeout_in(pulseWidth, this, &task);
+		return;
+	}
+
 }
 
 void Robot::changeModeSafe()
@@ -241,191 +323,212 @@ void Robot::waitForEvent(int event){
 
 void Robot::handle_uint8_data(uint8 data)
 {
-//	static ROBOTSTATE oldRobotState, robotState;
-//	static int        checksum;
-//	static int        bytesToRead = 0;
-//	static uint8      streamState = STREAM_UNKNOWN;
-//
-//	JennicOs::os_pointer()->debug("uint8 Data Handler aufgerufen, data: %i, bytesToRead: %i, checksum: %i, streamState: %i", data, bytesToRead, checksum, streamState);
-//
-//	checksum += data;
-//
-//	switch(streamState)
-//	{
-//	case STREAM_UNKNOWN:
-//		if(data == STREAM_HEADER && bytesToRead == 0)
-//		{
-//			memset(&robotState, 0, sizeof(ROBOTSTATE));
-//			checksum     = 19;
-//			streamState  = STREAM_BYTES_TO_READ;
-//			return;	// do not decrement bytesToRead
-//		}
-//		else
-//		{
-//			streamState = data;
-//			bytesToRead--;
-//		}
-//		return;
-//
-//	case STREAM_BYTES_TO_READ:
-//		bytesToRead = data;
-//		streamState = STREAM_UNKNOWN;
-//		return;	// do not decrement bytesToRead
-//
-//	case STREAM_CHECKSUM:
-//		if(checksum == 256)
-//		{
-//			if(memcmp(&robotState, &oldRobotState, sizeof(ROBOTSTATE)) != 0)
-//			{
-//				m_pHandler->onStateChanged(&robotState);
-//				memcpy(&oldRobotState, &robotState, sizeof(ROBOTSTATE));
-//			}
-//		}
-//		else
-//		{
-//			m_pHandler->onChecksumError();
-//			checksum = 0;
-//		}
-//
-//		streamState = STREAM_UNKNOWN;
-//		return;	// do not decrement bytesToRead
-//
-//	case STREAM_BUMP_WHEELDROP:
-//		robotState.bumpAndWheelDrop = data;
-//		break;
-//
-//	case STREAM_WALL:
-//		robotState.wall  = data;
-//		break;
-//
-//	case STREAM_CLIFF_LEFT:
-//		if(data)
-//			robotState.cliff |= CLIFF_LEFT;
-//		break;
-//
-//	case STREAM_CLIFF_FRONT_LEFT:
-//		if(data)
-//			robotState.cliff |= CLIFF_FRONT_LEFT;
-//		break;
-//
-//	case STREAM_CLIFF_FRONT_RIGHT:
-//		if(data)
-//			robotState.cliff |= CLIFF_FRONT_RIGHT;
-//		break;
-//
-//	case STREAM_CLIFF_RIGHT:
-//		if(data)
-//			robotState.cliff |= CLIFF_RIGHT;
-//		break;
-//
-//	case STREAM_VIRTUAL_WALL:
-//		robotState.virtualWall = data;
-//		break;
-//
-//	case STREAM_OVERCURRENTS:
-//		robotState.virtualWall = data;
-//		break;
-//
-//	case STREAM_INFRARED:
-//		robotState.infrared = data;
-//		break;
-//
-//	case STREAM_BUTTONS:
-//		robotState.buttons = data;
-//		break;
-//
-//	case STREAM_DISTANCE:
-//		SET_16BIT_VALUE(robotState.distance, data);
-//		break;
-//
-//	case STREAM_ANGLE:
-//		SET_16BIT_VALUE(robotState.angle, data);
-//		break;
-//
-//	case STREAM_CHARGING_STATE:
-//		robotState.chargingState = data;
-//		break;
-//
-//	case STREAM_VOLTAGE:
-//		SET_16BIT_VALUE(robotState.voltage, data);
-//		break;
-//
-//	case STREAM_CURRENT:
-//		SET_16BIT_VALUE(robotState.current, data);
-//		break;
-//
-//	case STREAM_BATTERY_TEMPERATURE:
-//		robotState.batteryTemperature = data;
-//		break;
-//
-//	case STREAM_BATTERY_CHARGE:
-//		SET_16BIT_VALUE(robotState.batteryCharge, data);
-//		break;
-//
-//	case STREAM_BATTERY_CAPACITY:
-//		SET_16BIT_VALUE(robotState.batteryCapacity, data);
-//		break;
-//
-//	case STREAM_WALL_SIGNAL:
-//		SET_16BIT_VALUE(robotState.wallSignal, data);
-//		break;
-//
-//	case STREAM_CLIFF_LEFT_SIGNAL:
-//		SET_16BIT_VALUE(robotState.cliffLeftSignal, data);
-//		break;
-//
-//	case STREAM_CLIFF_FRONT_LEFT_SIGNAL:
-//		SET_16BIT_VALUE(robotState.cliffFrontLeftSignal, data);
-//		break;
-//
-//	case STREAM_CLIFF_FRONT_RIGHT_SIGNAL:
-//		SET_16BIT_VALUE(robotState.cliffFrontRightSignal, data);
-//		break;
-//
-//	case STREAM_CLIFF_RIGHT_SIGNAL:
-//		SET_16BIT_VALUE(robotState.cliffRightSignal, data);
-//		break;
-//
-//	case STREAM_CARGO_BAY_DIGITAL_INPUTS:
-//		robotState.cargoBayDigitalInputs = data;
-//		break;
-//
-//	case STREAM_CARGO_BAY_ANALOG_SIGNAL:
-//		SET_16BIT_VALUE(robotState.cargoBayAnalogSignal, data);
-//		break;
-//
-//	case STREAM_CHARGING_SOURCES:
-//		robotState.chargingSources = data;
-//		break;
-//
-//	case STREAM_SONG_NUMBER:
-//		robotState.songNumber = data;
-//		break;
-//
-//	case STREAM_SONG_PLAYING:
-//		robotState.songPlaying = data;
-//		break;
-//
-//	case STREAM_REQUESTED_VELOCITY:
-//		SET_16BIT_VALUE(robotState.requestedVelocity, data);
-//		break;
-//
-//	case STREAM_REQUESTED_RADIUS:
-//		SET_16BIT_VALUE(robotState.requestedRadius, data);
-//		break;
-//
-//	case STREAM_REQUESTED_RIGHT_VELOCITY:
-//		SET_16BIT_VALUE(robotState.requestedRightVelocity, data);
-//		break;
-//
-//	case STREAM_REQUESTED_LEFT_VELOCITY:
-//		SET_16BIT_VALUE(robotState.requestedLeftVelocity, data);
-//		break;
-//	}
-//
-//	streamState = STREAM_UNKNOWN;
-//
-//skipSetStateToUnknown:
-//	if(--bytesToRead == 0)
-//		streamState = STREAM_CHECKSUM;
+	static ROBOTSTATE oldRobotState, robotState;
+	static int        checksum;
+	static int        bytesToRead = 0;
+	static uint8      streamState = STREAM_UNKNOWN;
+
+	checksum += data;
+
+	switch(streamState)
+	{
+	case STREAM_UNKNOWN:
+		if(data == STREAM_HEADER && bytesToRead == 0)
+		{
+			memset(&robotState, 0, sizeof(ROBOTSTATE));
+			checksum     = 19;
+			streamState  = STREAM_BYTES_TO_READ;
+			return;	// do not decrement bytesToRead
+		}
+		else
+		{
+			streamState = data;
+			bytesToRead--;
+		}
+		return;
+
+	case STREAM_BYTES_TO_READ:
+		bytesToRead = data;
+		streamState = STREAM_UNKNOWN;
+		return;	// do not decrement bytesToRead
+
+	case STREAM_CHECKSUM:
+		if(checksum == 256)
+		{
+			if(memcmp(&robotState, &oldRobotState, sizeof(ROBOTSTATE)) != 0)
+			{
+				m_pHandler->onStateChanged(&robotState);
+				memcpy(&oldRobotState, &robotState, sizeof(ROBOTSTATE));
+			}
+		}
+		else
+		{
+			m_pHandler->onChecksumError();
+			checksum = 0;
+		}
+
+		streamState = STREAM_UNKNOWN;
+		return;	// do not decrement bytesToRead
+
+	case STREAM_BUMP_WHEELDROP:
+		robotState.bumpAndWheelDrop = data;
+		break;
+
+	case STREAM_WALL:
+		robotState.wall  = data;
+		break;
+
+	case STREAM_CLIFF_LEFT:
+		if(data)
+			robotState.cliff |= CLIFF_LEFT;
+		break;
+
+	case STREAM_CLIFF_FRONT_LEFT:
+		if(data)
+			robotState.cliff |= CLIFF_FRONT_LEFT;
+		break;
+
+	case STREAM_CLIFF_FRONT_RIGHT:
+		if(data)
+			robotState.cliff |= CLIFF_FRONT_RIGHT;
+		break;
+
+	case STREAM_CLIFF_RIGHT:
+		if(data)
+			robotState.cliff |= CLIFF_RIGHT;
+		break;
+
+	case STREAM_VIRTUAL_WALL:
+		robotState.virtualWall = data;
+		break;
+
+	case STREAM_OVERCURRENTS:
+		robotState.virtualWall = data;
+		break;
+
+	case STREAM_INFRARED:
+		robotState.infrared = data;
+		break;
+
+	case STREAM_BUTTONS:
+		robotState.buttons = data;
+		break;
+
+	case STREAM_DISTANCE:
+		SET_16BIT_VALUE(robotState.distance, data);
+		break;
+
+	case STREAM_ANGLE:
+		SET_16BIT_VALUE(robotState.angle, data);
+		break;
+
+	case STREAM_CHARGING_STATE:
+		robotState.chargingState = data;
+		break;
+
+	case STREAM_VOLTAGE:
+		SET_16BIT_VALUE(robotState.voltage, data);
+		break;
+
+	case STREAM_CURRENT:
+		SET_16BIT_VALUE(robotState.current, data);
+		break;
+
+	case STREAM_BATTERY_TEMPERATURE:
+		robotState.batteryTemperature = data;
+		break;
+
+	case STREAM_BATTERY_CHARGE:
+		SET_16BIT_VALUE(robotState.batteryCharge, data);
+		break;
+
+	case STREAM_BATTERY_CAPACITY:
+		SET_16BIT_VALUE(robotState.batteryCapacity, data);
+		break;
+
+	case STREAM_WALL_SIGNAL:
+		SET_16BIT_VALUE(robotState.wallSignal, data);
+		break;
+
+	case STREAM_CLIFF_LEFT_SIGNAL:
+		SET_16BIT_VALUE(robotState.cliffLeftSignal, data);
+		break;
+
+	case STREAM_CLIFF_FRONT_LEFT_SIGNAL:
+		SET_16BIT_VALUE(robotState.cliffFrontLeftSignal, data);
+		break;
+
+	case STREAM_CLIFF_FRONT_RIGHT_SIGNAL:
+		SET_16BIT_VALUE(robotState.cliffFrontRightSignal, data);
+		break;
+
+	case STREAM_CLIFF_RIGHT_SIGNAL:
+		SET_16BIT_VALUE(robotState.cliffRightSignal, data);
+		break;
+
+	case STREAM_CARGO_BAY_DIGITAL_INPUTS:
+		robotState.cargoBayDigitalInputs = data;
+		break;
+
+	case STREAM_CARGO_BAY_ANALOG_SIGNAL:
+		SET_16BIT_VALUE(robotState.cargoBayAnalogSignal, data);
+		break;
+
+	case STREAM_CHARGING_SOURCES:
+		robotState.chargingSources = data;
+		break;
+
+	case STREAM_SONG_NUMBER:
+		robotState.songNumber = data;
+		break;
+
+	case STREAM_SONG_PLAYING:
+		robotState.songPlaying = data;
+		break;
+
+	case STREAM_REQUESTED_VELOCITY:
+		SET_16BIT_VALUE(robotState.requestedVelocity, data);
+		break;
+
+	case STREAM_REQUESTED_RADIUS:
+		SET_16BIT_VALUE(robotState.requestedRadius, data);
+		break;
+
+	case STREAM_REQUESTED_RIGHT_VELOCITY:
+		SET_16BIT_VALUE(robotState.requestedRightVelocity, data);
+		break;
+
+	case STREAM_REQUESTED_LEFT_VELOCITY:
+		SET_16BIT_VALUE(robotState.requestedLeftVelocity, data);
+		break;
+	}
+
+	streamState = STREAM_UNKNOWN;
+
+skipSetStateToUnknown:
+	if(--bytesToRead == 0)
+		streamState = STREAM_CHECKSUM;
 }
+
+void Robot::timeout(void *userdata)
+{
+//	m_pOs.debug("CreateRobot timeout, ID: %i", *(uint8*) userdata);
+	m_pOs.add_task(this, userdata);
+}
+
+void Robot::execute(void *userdata)
+{
+	uint8 taskID = *(uint8*) userdata;
+//	m_pOs.debug("execute, taskID: %i", taskID);
+	if(taskID == CREATEROBOT_TASK_BAUDRATE_GPIO)
+	{
+//		m_pOs.debug("CreateRobot execute setBaudRateViaGpio");
+		setBaudRateViaGpio();
+	}
+	if(taskID == CREATEROBOT_TASK_INIT)
+	{
+//		m_pOs.debug("CreateRobot execute initPart2 ");
+		initPart2();
+	}
+}
+

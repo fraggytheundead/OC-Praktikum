@@ -27,20 +27,22 @@ using namespace isense;
 
 class RobotLogic {
 public:
-  RobotLogic(Os& os, Uart *pUart, Communication *pCommunication);
-  virtual ~RobotLogic();
-  void doTask(const char* taskName, uint8 paramLength, const uint16 *parameters);
-  void doTask(uint8 taskID, uint8 paramLength, int16 *parameters);
-  void getCapabilities();
+	RobotLogic(Os& os, Uart *pUart, Communication *pCommunication);
+	virtual ~RobotLogic();
+	void doTask(const char* taskName, uint8 paramLength, const uint16 *parameters);
+	void doTask(uint8 taskID, uint8 paramLength, int16 *parameters);
+	void getCapabilities();
+	virtual void onStateChanged(PCROBOTSTATE pState);
+	virtual void onChecksumError();
 
 protected:
-  PseudoRandomNumberGenerator m_randOmat;
-  void turn(int16 angle, uint8 randomComponent);
-  void turnInfinite(int16 direction);
-  void stop();
-  Communication *m_pCommunication;
-  Os& m_pOs;
-  Robot m_Robot;
+	PseudoRandomNumberGenerator m_randOmat;
+	void turn(int16 angle, uint8 randomComponent);
+	void turnInfinite(int16 direction);
+	void stop();
+	Communication *m_pCommunication;
+	Os& m_pOs;
+	Robot m_Robot;
 
 };
 
