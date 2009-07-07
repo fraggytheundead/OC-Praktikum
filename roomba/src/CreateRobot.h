@@ -165,14 +165,12 @@ class Robot: public Uint8DataHandler,
 protected:
 	Uart       *m_pUart;
 	RobotHandler *m_pHandler;
-	Gpio	*m_pGpio;
 	void initPart2();
 
 public:
 	Robot(Os& os);
 	virtual ~Robot();
 	void initialize(Uart *pUart);
-	void setBaudRateViaGpio();
 	void startDemo(int demo);
 	void drive(uint16 velocity, uint16 radius);
 	void driveDirect(uint16 leftVelocity, uint16 rightVelocity);

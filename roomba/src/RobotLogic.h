@@ -25,7 +25,13 @@
 
 using namespace isense;
 
-class RobotLogic {
+// Task IDs:
+#define ROBOT_ACTION_STOP		1
+
+class RobotLogic: public RobotHandler,
+public isense::TimeoutHandler,
+public isense::Task
+{
 public:
 	RobotLogic(Os& os, Uart *pUart, Communication *pCommunication);
 	virtual ~RobotLogic();
@@ -35,11 +41,17 @@ public:
 	virtual void onStateChanged(PCROBOTSTATE pState);
 	virtual void onChecksumError();
 
+	///From isense::TimeoutHandler
+	virtual void timeout(void *userdata);
+	///From isense::Task
+	virtual void execute(void *userdata);
+
 protected:
 	PseudoRandomNumberGenerator m_randOmat;
 	void turn(int16 angle, uint8 randomComponent);
 	void turnInfinite(int16 direction);
 	void stop();
+	void driveDistance(uint16 speed, uint16 radius, uint16 distance);
 	Communication *m_pCommunication;
 	Os& m_pOs;
 	Robot m_Robot;
