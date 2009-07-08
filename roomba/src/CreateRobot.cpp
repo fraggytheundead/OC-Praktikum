@@ -81,8 +81,8 @@ void Robot::initPart2()
 	// 8 Databits, no flowcontrol, set Stoppbit to 1
 	m_pUart->set_control( 8, 'N', 1 );
 	// set data handler
-	m_pUart->set_uint8_handler(this);
-	m_pUart->enable_interrupt(true);
+//	m_pUart->set_uint8_handler(this);
+//	m_pUart->enable_interrupt(true);
 	// send roomba start command
 	m_pUart->put( CMD_START );
 	// turn power LED on (green, full intensity)

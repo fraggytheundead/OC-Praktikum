@@ -36,7 +36,6 @@ public:
 	RobotLogic(Os& os, Uart *pUart, Communication *pCommunication);
 	virtual ~RobotLogic();
 	void doTask(const char* taskName, uint8 paramLength, const uint16 *parameters);
-	void doTask(uint8 taskID, uint8 paramLength, int16 *parameters);
 	void getCapabilities();
 	virtual void onStateChanged(PCROBOTSTATE pState);
 	virtual void onChecksumError();
