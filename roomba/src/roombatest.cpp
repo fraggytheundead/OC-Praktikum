@@ -68,10 +68,8 @@ void roombatest::receive(uint8 len, const uint8 * buf, uint16 src_addr,
 	for (int i = 0; i < len; ++i) {
 		os_.debug("buf[%d] = %d", i, buf[i]);
 	}
-	uint16 destination = (buf[1] << 8) | buf[2];
-	if (destination == os_.id() || destination == BROADCAST) {
-		m_comModule.decodeMessage(len, buf);
-	}
+
+	m_comModule.decodeMessage(len, buf);
 }
 
 void roombatest::confirm(uint8 state, uint8 tries, isense::Time time) {

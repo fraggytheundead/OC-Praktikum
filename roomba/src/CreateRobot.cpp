@@ -59,11 +59,11 @@ void Robot::initialize(Uart *pUart){
 	m_pOs.debug("CreateRobot init");
 	m_pUart = pUart;
 	Time currentTime = m_pOs.time();
-	// wait for the iCreate to boot up - 4 seconds should do the trick
-	if(currentTime.sec() < 6)
+	// wait for the iCreate to boot up - 5 seconds should do the trick
+	if(currentTime.sec() < 5)
 	{
 		static uint8 task = CREATEROBOT_TASK_INIT;
-		Time initTime =  Time(6, 0);
+		Time initTime =  Time(5, 0);
 //		m_pOs.debug("CreateRobot init: fuege timeout in %i Sekunden hinzu", initTime.sec());
 		m_pOs.add_timeout_in(initTime, this, &task);
 	}
@@ -261,7 +261,6 @@ void Robot::wait(uint8 time){
 	m_pUart->write_buffer(buff, 2);
 }
 
-	// in 15ms units
 void Robot::waitForDistance(int16 distance){
 	char buff[3];
 	buff[0] = CMD_WAIT_DISTANCE;
@@ -287,7 +286,7 @@ void Robot::waitForEvent(int event){
 
 void Robot::handle_uint8_data(uint8 data)
 {
-
+	// TODO: funktionierende Version von Alex holen
 }
 
 void Robot::timeout(void *userdata)

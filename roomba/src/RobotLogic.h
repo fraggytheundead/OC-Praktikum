@@ -48,6 +48,7 @@ public:
 protected:
 	PseudoRandomNumberGenerator m_randOmat;
 	void turn(int16 angle, uint8 randomComponent);
+	void turnBetter(int16 angle, uint8 randomComponent);
 	void turnInfinite(int16 direction);
 	void stop();
 	void driveDistance(uint16 speed, uint16 radius, uint16 distance);

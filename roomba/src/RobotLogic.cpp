@@ -22,16 +22,16 @@ RobotLogic::RobotLogic(Os& os, Uart *pUart, Communication *pCommunication) :
 	m_pOs(os),
 	m_Robot(os)
 {
-  m_Robot.initialize(pUart);
-  m_Robot.setRobotHandler(this);
-  m_randOmat.srand((uint32) (m_pOs.time()).ms());
+	m_Robot.initialize(pUart);
+	m_Robot.setRobotHandler(this);
+	m_randOmat.srand((uint32) (m_pOs.time()).ms());
 
-  m_pCommunication = pCommunication;
+	m_pCommunication = pCommunication;
 }
 
 RobotLogic::~RobotLogic()
 {
-  // TODO Auto-generated destructor stub
+	// TODO Auto-generated destructor stub
 }
 
 void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *parameters)
@@ -51,7 +51,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		if(paramLength == 2)
 		{
 			m_pOs.debug("doTask: turnParam0:%i  Param1:%i",parameters[0],parameters[1]);
-			turn((int16) parameters[0], (uint8) (parameters[1] & 0xff));
+			turnBetter((int16) parameters[0], (uint8) (parameters[1] & 0xff));
 		}
 	}
 
@@ -70,14 +70,14 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		stop();
 	}
 
-	if(strcmp(taskName, "drveDist") == 0)
+	if(strcmp(taskName, "driveDistance") == 0)
+	{
+		if(paramLength == 3)
 		{
-			if(paramLength == 3)
-			{
-				m_pOs.debug("doTask: drveDist  Param0: %i  Param1: %i Param2: %i",parameters[0],parameters[1],parameters[2]);
-				driveDistance((uint16) parameters[0], (uint16) parameters[1], (uint16) parameters[2]);
-			}
+			m_pOs.debug("doTask: drveDist  Param0: %i  Param1: %i Param2: %i",parameters[0],parameters[1],parameters[2]);
+			driveDistance((uint16) parameters[0], (uint16) parameters[1], (uint16) parameters[2]);
 		}
+	}
 }
 
 void RobotLogic::getCapabilities()
@@ -86,20 +86,20 @@ void RobotLogic::getCapabilities()
 	m_pOs.debug("getCapabilities start");
 #endif
 	uint8 taskListLength = 4;
-	const char* taskList[]={"drive","turn","drveDist","stop"};
+	const char* taskList[]={"drive","turn","driveDistance","stop"};
 	const char*** paramList;
 	const uint8 paramListLength[]={2,2,3,0};
 
 	// TODO
-	uint8 sensorLength = 0;
-	char* sensors[]={};
-	uint8 sensorRange[]={};
+	uint8 sensorLength = 3;
+	char* sensors[]={"Battery", "BumperLeft", "BumperRight"};
+	uint8 sensorRange[]={0,100,0,1,0,1};
 
 	paramList = ((const char ***)isense::malloc(sizeof (const char **) * taskListLength));
 	for (int i = 0; i < taskListLength; ++i)
 	{
 		int bytesNeeded = (sizeof (const char *) * paramListLength[i]);
-//		m_pOs.debug("multiplikation: %i, sizeof (const char **): %i, paramListLength: %i", bytesNeeded, sizeof (const char *), paramListLength[i]);
+		//		m_pOs.debug("multiplikation: %i, sizeof (const char **): %i, paramListLength: %i", bytesNeeded, sizeof (const char *), paramListLength[i]);
 		if(bytesNeeded > 0) {
 			paramList[i] = ((const char **)isense::malloc(bytesNeeded));
 		}
@@ -109,12 +109,12 @@ void RobotLogic::getCapabilities()
 #endif
 
 	paramList[0][0] = "speed";
-	paramList[0][1] = "rad";
-	paramList[1][0] = "angl";
+	paramList[0][1] = "radius";
+	paramList[1][0] = "angle";
 	paramList[1][1] = "random";
-	paramList[2][0] = "spd";
-	paramList[2][1] = "rad";
-	paramList[2][2] = "dist";
+	paramList[2][0] = "speed";
+	paramList[2][1] = "radius";
+	paramList[2][2] = "distance";
 
 	uint16 nodeID = m_pOs.id();
 
@@ -129,27 +129,27 @@ void RobotLogic::getCapabilities()
 	m_pOs.debug("getCapabilities after getting communication");
 #endif
 
-//	uint8 buf[128];
+	//	uint8 buf[128];
 	m_pComm->sendFeatures(nodeID, taskListLength,
 			taskList, paramListLength, paramList,
 			sensorLength, sensors, sensorRange);
 
-//#ifdef DEBUG_GET_CAPABILITIES
-//	m_pOs.debug("getCapabilities after sendfeatures");
-//	m_Robot.setLeds(0x02, 16, 255);
-//#endif
-//
-//	Flooding& flooding = ((roombatest *) m_pOs.application())->getFlooding();
-//	flooding.send(len,  buf);
-//
-//#ifdef DEBUG_GET_CAPABILITIES
-//	m_pOs.debug("getCapabilities after flooding");
-//	m_Robot.setLeds(0x08, 16, 255);
-//#endif
+	//#ifdef DEBUG_GET_CAPABILITIES
+	//	m_pOs.debug("getCapabilities after sendfeatures");
+	//	m_Robot.setLeds(0x02, 16, 255);
+	//#endif
+	//
+	//	Flooding& flooding = ((roombatest *) m_pOs.application())->getFlooding();
+	//	flooding.send(len,  buf);
+	//
+	//#ifdef DEBUG_GET_CAPABILITIES
+	//	m_pOs.debug("getCapabilities after flooding");
+	//	m_Robot.setLeds(0x08, 16, 255);
+	//#endif
 
 	for (int i = 0; i < taskListLength; ++i)
 	{
-//		m_pOs.debug("getCapabilities: freeing paramlist[%i]", i);
+		//		m_pOs.debug("getCapabilities: freeing paramlist[%i]", i);
 		isense::free (paramList[i]);
 	}
 
@@ -167,22 +167,51 @@ void RobotLogic::getCapabilities()
 
 void RobotLogic::turn(int16 angle, uint8 randomComponent)
 {
-  m_pOs.debug("turn, angle: %i, randomComp: %i", angle, randomComponent);
-  int8 random = (int8) (m_randOmat.rand(randomComponent) & 0xff);
-  angle += (int16) random;
-  m_pOs.debug("turn, angle incl. random: %i", angle);
+	m_pOs.debug("turn, angle: %i, randomComp: %i", angle, randomComponent);
+	int8 random = (int8) (m_randOmat.rand(randomComponent) & 0xff);
+	angle += (int16) random;
+	m_pOs.debug("turn, angle incl. random: %i", angle);
 
-  uint8 script[] = { CMD_DRIVE,  0, 255, 0xff, 0xff,
-            CMD_WAIT_ANGLE, (uint8) ((angle & 0xff00) >> 8), (uint8) (angle & 0xff),
-            CMD_DRIVE, 0, 0, 0, 0};
-  if(angle > 0)
-  {
-    script[3] = 0;
-    script[4] = 1;
-  }
-  m_Robot.setScript(script, sizeof(script));
-  m_Robot.executeScript();
-  m_pOs.debug("turn end");
+	uint8 script[] = { CMD_DRIVE,  0, 255, 0xff, 0xff,
+			CMD_WAIT_ANGLE, (uint8) ((angle & 0xff00) >> 8), (uint8) (angle & 0xff),
+			CMD_DRIVE, 0, 0, 0, 0};
+	if(angle > 0)
+	{
+		script[3] = 0;
+		script[4] = 1;
+	}
+	m_Robot.setScript(script, sizeof(script));
+	m_Robot.executeScript();
+	m_pOs.debug("turn end");
+}
+
+void RobotLogic::turnBetter(int16 angle, uint8 randomComponent)
+{
+	// 206mm/s == 90° / s
+	uint16 turnSpeed = 206;
+
+	if(randomComponent > 0)
+	{
+		int8 random = (int8) (m_randOmat.rand(randomComponent) & 0xff);
+		angle += (int16) random;
+	}
+
+	uint16 turnDirection = 0x0001;
+	if(angle < 0)
+	{
+		turnDirection = 0xffff;
+		angle = angle * -1;
+	}
+
+	m_Robot.drive(turnSpeed, turnDirection);
+
+	static uint8 task = ROBOT_ACTION_STOP;
+	uint32 seconds = angle / 90;
+	uint16 msecs = (1000 * angle / 90) - 1000 * seconds;
+	Time turnTime =  Time(seconds, msecs);
+
+	m_pOs.debug("RobotLogic turn, angle: %i, seconds: %i, msecs: %i", angle, seconds, msecs);
+	m_pOs.add_timeout_in(turnTime, this, &task);
 }
 
 void RobotLogic::turnInfinite(int16 turnVelocity)
@@ -196,15 +225,15 @@ void RobotLogic::stop()
 	m_Robot.driveDirect(0,0);
 }
 
-void RobotLogic::driveDistance(uint16 speed, uint16 radius, uint16 distance) {
+void RobotLogic::driveDistance(uint16 speed, uint16 radius, uint16 distance)
+{
 	static uint8 task = ROBOT_ACTION_STOP;
-	int seconds = distance / speed;
-	int msecs = ((1000 * distance) / speed) - 1000 * seconds;
+	uint32 seconds = distance / speed;
+	uint16 msecs = ((1000 * distance) / speed) - 1000 * seconds;
 	m_pOs.debug("RobotLogic driveDistance, distance: %i, speed: %i, seconds: %i, msecs: %i", distance, speed, seconds, msecs);
 	Time distanceTime =  Time(seconds, msecs);
 	m_Robot.drive(speed, radius);
 	m_pOs.add_timeout_in(distanceTime, this, &task);
-
 }
 
 void RobotLogic::timeout(void *userdata)
@@ -227,10 +256,10 @@ void RobotLogic::onStateChanged(PCROBOTSTATE pState)
 {
 	static bool b = false;
 
-//	if(b)
-//		CoreModule(*g_pOS).led_on();
-//	else
-//		CoreModule(*g_pOS).led_off();
+	//	if(b)
+	//		CoreModule(*g_pOS).led_on();
+	//	else
+	//		CoreModule(*g_pOS).led_off();
 	m_pOs.debug("bumpAndWheelDrop: %x, batteryCharge: %i, batteryTemperature: %i",
 			pState->bumpAndWheelDrop, pState->batteryCapacity, pState->batteryTemperature);
 
