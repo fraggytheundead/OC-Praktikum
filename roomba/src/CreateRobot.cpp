@@ -286,7 +286,193 @@ void Robot::waitForEvent(int event){
 
 void Robot::handle_uint8_data(uint8 data)
 {
-	// TODO: funktionierende Version von Alex holen
+	static ROBOTSTATE oldRobotState, robotState;
+	static int        checksum;
+	static int        bytesToRead = 0;
+	static uint8      streamState = STREAM_UNKNOWN;
+
+	JennicOs::os_pointer()->debug("uint8 Data Handler aufgerufen, data: %i, bytesToRead: %i, checksum: %i, streamState: %i", data, bytesToRead, checksum, streamState);
+
+	checksum += data;
+
+	switch(streamState)
+	{
+	case STREAM_UNKNOWN:
+		if(data == STREAM_HEADER && bytesToRead == 0)
+		{
+			memset(&robotState, 0, sizeof(ROBOTSTATE));
+			checksum     = 19;
+			streamState  = STREAM_BYTES_TO_READ;
+			return;	// do not decrement bytesToRead
+		}
+		else
+		{
+			streamState = data;
+			bytesToRead--;
+		}
+		return;
+
+	case STREAM_BYTES_TO_READ:
+		bytesToRead = data;
+		streamState = STREAM_UNKNOWN;
+		return;	// do not decrement bytesToRead
+
+	case STREAM_CHECKSUM:
+		if(checksum == 256)
+		{
+			if(memcmp(&robotState, &oldRobotState, sizeof(ROBOTSTATE)) != 0)
+			{
+				m_pHandler->onStateChanged(&robotState);
+				memcpy(&oldRobotState, &robotState, sizeof(ROBOTSTATE));
+			}
+		}
+		else
+		{
+			m_pHandler->onChecksumError();
+			checksum = 0;
+		}
+
+		streamState = STREAM_UNKNOWN;
+		return;	// do not decrement bytesToRead
+
+	case STREAM_BUMP_WHEELDROP:
+		robotState.bumpAndWheelDrop = data;
+		break;
+
+	case STREAM_WALL:
+		robotState.wall  = data;
+		break;
+
+	case STREAM_CLIFF_LEFT:
+		if(data)
+			robotState.cliff |= CLIFF_LEFT;
+		break;
+
+	case STREAM_CLIFF_FRONT_LEFT:
+		if(data)
+			robotState.cliff |= CLIFF_FRONT_LEFT;
+		break;
+
+	case STREAM_CLIFF_FRONT_RIGHT:
+		if(data)
+			robotState.cliff |= CLIFF_FRONT_RIGHT;
+		break;
+
+	case STREAM_CLIFF_RIGHT:
+		if(data)
+			robotState.cliff |= CLIFF_RIGHT;
+		break;
+
+	case STREAM_VIRTUAL_WALL:
+		robotState.virtualWall = data;
+		break;
+
+	case STREAM_OVERCURRENTS:
+		robotState.virtualWall = data;
+		break;
+
+	case STREAM_INFRARED:
+		robotState.infrared = data;
+		break;
+
+	case STREAM_BUTTONS:
+		robotState.buttons = data;
+		break;
+
+	case STREAM_DISTANCE:
+		SET_16BIT_VALUE(robotState.distance, data);
+		break;
+
+	case STREAM_ANGLE:
+		SET_16BIT_VALUE(robotState.angle, data);
+		break;
+
+	case STREAM_CHARGING_STATE:
+		robotState.chargingState = data;
+		break;
+
+	case STREAM_VOLTAGE:
+		SET_16BIT_VALUE(robotState.voltage, data);
+		break;
+
+	case STREAM_CURRENT:
+		SET_16BIT_VALUE(robotState.current, data);
+		break;
+
+	case STREAM_BATTERY_TEMPERATURE:
+		robotState.batteryTemperature = data;
+		break;
+
+	case STREAM_BATTERY_CHARGE:
+		SET_16BIT_VALUE(robotState.batteryCharge, data);
+		break;
+
+	case STREAM_BATTERY_CAPACITY:
+		SET_16BIT_VALUE(robotState.batteryCapacity, data);
+		break;
+
+	case STREAM_WALL_SIGNAL:
+		SET_16BIT_VALUE(robotState.wallSignal, data);
+		break;
+
+	case STREAM_CLIFF_LEFT_SIGNAL:
+		SET_16BIT_VALUE(robotState.cliffLeftSignal, data);
+		break;
+
+	case STREAM_CLIFF_FRONT_LEFT_SIGNAL:
+		SET_16BIT_VALUE(robotState.cliffFrontLeftSignal, data);
+		break;
+
+	case STREAM_CLIFF_FRONT_RIGHT_SIGNAL:
+		SET_16BIT_VALUE(robotState.cliffFrontRightSignal, data);
+		break;
+
+	case STREAM_CLIFF_RIGHT_SIGNAL:
+		SET_16BIT_VALUE(robotState.cliffRightSignal, data);
+		break;
+
+	case STREAM_CARGO_BAY_DIGITAL_INPUTS:
+		robotState.cargoBayDigitalInputs = data;
+		break;
+
+	case STREAM_CARGO_BAY_ANALOG_SIGNAL:
+		SET_16BIT_VALUE(robotState.cargoBayAnalogSignal, data);
+		break;
+
+	case STREAM_CHARGING_SOURCES:
+		robotState.chargingSources = data;
+		break;
+
+	case STREAM_SONG_NUMBER:
+		robotState.songNumber = data;
+		break;
+
+	case STREAM_SONG_PLAYING:
+		robotState.songPlaying = data;
+		break;
+
+	case STREAM_REQUESTED_VELOCITY:
+		SET_16BIT_VALUE(robotState.requestedVelocity, data);
+		break;
+
+	case STREAM_REQUESTED_RADIUS:
+		SET_16BIT_VALUE(robotState.requestedRadius, data);
+		break;
+
+	case STREAM_REQUESTED_RIGHT_VELOCITY:
+		SET_16BIT_VALUE(robotState.requestedRightVelocity, data);
+		break;
+
+	case STREAM_REQUESTED_LEFT_VELOCITY:
+		SET_16BIT_VALUE(robotState.requestedLeftVelocity, data);
+		break;
+	}
+
+	streamState = STREAM_UNKNOWN;
+
+	skipSetStateToUnknown:
+	if(--bytesToRead == 0)
+		streamState = STREAM_CHECKSUM;
 }
 
 void Robot::timeout(void *userdata)
