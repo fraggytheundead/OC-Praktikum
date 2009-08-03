@@ -190,6 +190,7 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 
 			//TODO hier die Methode die bei sendMessage aufgerufen wird
 			// logic->doMessage(uint16 srcId, uint8 valueLength, uint16 values, char* taskName);
+			logic->doTask(taskName, valueLength, values);
 
 			isense::free(values);
 		}

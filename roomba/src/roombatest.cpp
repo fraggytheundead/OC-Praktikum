@@ -35,7 +35,7 @@ roombatest::~roombatest()
 //----------------------------------------------------------------------------
 void roombatest::boot(void) {
 	os_.allow_sleep(false);
-	os_.add_timeout_in(Time(MILLISECONDS), this, NULL);
+	os_.add_timeout_in(Time(2 * MILLISECONDS), this, NULL);
 //    os_.set_log_mode(ISENSE_LOG_MODE_RADIO);
 	os_.radio().hardware_radio().set_channel(20);
     os_.debug("Boot");
@@ -77,7 +77,7 @@ void roombatest::confirm(uint8 state, uint8 tries, isense::Time time) {
 
 void roombatest::timeout(void* userdata) {
 	os_.add_task(this,NULL);
-	os_.add_timeout_in(Time(MILLISECONDS), this, NULL);
+	os_.add_timeout_in(Time(2 * MILLISECONDS), this, NULL);
 }
 
 void roombatest::handle_uart_packet(uint8 type, uint8* buf, uint8 length) {

@@ -146,7 +146,7 @@ void RobotLogic::getCapabilities()
 	m_pOs.debug("getCapabilities start");
 #endif
 	uint8 taskListLength = 9;
-	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","miTheme"};
+	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme"};
 	const char*** paramList;
 	const uint8 paramListLength[]={2,2,3,1,0,1,1,0};
 
@@ -300,7 +300,7 @@ void RobotLogic::randomDrive() {
 			m_neighborhoodMonitor.SIGNAL_STRENGTH);
 	while (neighbors->addr != 0xFFFF) {
 		linkQuality = neighbors->value;
-		m_pOs.debug("spread, linkQuality: %i", linkQuality);
+		m_pOs.debug("randomDrive, linkQuality: %i", linkQuality);
 		*(neighbors++);
 	}
 	//TODO
@@ -370,7 +370,7 @@ void RobotLogic::timeout(void *userdata)
 	else
 	{
 		taskBool=m_pOs.add_task(this, NULL);
-		timeoutBool=m_pOs.add_timeout_in(Time(MILLISECONDS), this, NULL);
+		timeoutBool=m_pOs.add_timeout_in(Time(2 * MILLISECONDS), this, NULL);
 		//m_pOs.debug("ROBOTLOGIC taskbool:%i",taskBool);
 		//m_pOs.debug("ROBOTLOGIC timeoutbool:%i",timeoutBool);
 		timeoutCounter++;
