@@ -16,6 +16,7 @@
 
 #ifndef __OCPROJ_COMMUNICATION_H
 #define __OCPROJ_COMMUNICATION_H
+#define BROADCAST 0xffff
 
 #include <isense/os.h>
 #include <isense/protocols/routing/flooding.h>
@@ -32,6 +33,7 @@ public:
 	void decodeMessage(uint8 len, const uint8 * buf);
 	uint8 getActualMessageId();
 	void incActualMessageId();
+
 
 private:
 	isense::Os& m_os;

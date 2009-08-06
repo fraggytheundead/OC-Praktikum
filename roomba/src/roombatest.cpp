@@ -35,7 +35,7 @@ roombatest::~roombatest()
 //----------------------------------------------------------------------------
 void roombatest::boot(void) {
 	os_.allow_sleep(false);
-	os_.add_timeout_in(Time(2 * MILLISECONDS), this, NULL);
+//	os_.add_timeout_in(Time(2 * MILLISECONDS), this, NULL);
 //    os_.set_log_mode(ISENSE_LOG_MODE_RADIO);
 	os_.radio().hardware_radio().set_channel(20);
     os_.debug("Boot");
@@ -58,7 +58,7 @@ void roombatest::wake_up(bool memory_held) {
 
 void roombatest::execute(void* userdata) {
 //	m_robotLogic.getCapabilities();
-	m_comModule.sendMessage(os_.id(),0,"patapatapata",0,NULL);
+	m_comModule.sendMessage(os_.id(),BROADCAST,"patapatapata",0,NULL);
 	//os_.debug("Timeout Length: %i",length);
 }
 

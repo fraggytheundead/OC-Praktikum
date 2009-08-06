@@ -26,6 +26,13 @@ RobotLogic::RobotLogic(Os& os, Uart *pUart, Communication *pCommunication) :
 {
 	m_Robot.initialize(pUart);
 	m_Robot.setRobotHandler(this);
+
+	int c=0;
+	for (c=0; c<20; c++)
+	{
+		centerQualityID[c]=0xffff;
+	}
+
 	m_randOmat.srand((uint32) (m_pOs.time()).ms());
 
 	m_pCommunication = pCommunication;
@@ -105,7 +112,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 
 	if (strcmp(taskName, "patapatapata") == 0) {
 		//m_pOs.debug("patapatapata erhalten in ID: %i",m_pOs.id());
-		m_pCommunication->sendMessage(m_pOs.id(),0,"pon",0,NULL);
+		m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"pon",0,NULL);
 	}
 
 	if (strcmp(taskName, "pon") == 0) {
@@ -116,16 +123,23 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	if (strcmp(taskName, "centerquality") == 0)
 	{
 		uint16 tempID;
-		tempID=parameters[1];
-		int i;
+		tempID=parameters[0];
+		int i=0;
 		for (i=0; i<20; i++) {
 			if (centerQualityID[i]==tempID) {
-				centerQuality[i]=parameters[0];
+				m_pOs.debug("Centerquality[%i] von %i ist %i %i",i,tempID,parameters[1],parameters[2]);
+				centerConnected[i]=parameters[1];
+				centerQuality[i]=parameters[2];
 				return;
+			}
+			if (centerQualityID[i]==BROADCAST) {
+				break;
 			}
 		}
 		centerQualityID[i]=tempID;
-		centerQuality[i]=parameters[0];
+		centerConnected[i]=parameters[1];
+		centerQuality[i]=parameters[2];
+		m_pOs.debug("Centerquality[%i] von %i ist %i %i ",i,tempID,parameters[1],parameters[2]);
 	}
 
 	if (strcmp(taskName, "findbase") == 0) {
@@ -410,8 +424,7 @@ void RobotLogic::execute(void *userdata)
 				while (neighbors->addr != 0xFFFF)
 				{
 					linkQuality = neighbors->value;
-					m_pOs.debug("Nachbar addr: %x",neighbors->addr);
-					m_pOs.debug("spread, linkQuality: %i", linkQuality);
+					m_pOs.debug("spread, Nachbar addr: %x  linkQuality: %i", neighbors->addr, linkQuality);
 					if (linkQuality > 50)
 					{
 						neighborCount++;
@@ -430,26 +443,30 @@ void RobotLogic::execute(void *userdata)
 			if (m_pOs.id()!=centerID)
 			{
 				centerConnected=true;
-				if (ownCenterQuality<50) {
+				if (ownCenterQuality<50)
+				{
 					stop();
 					centerConnected=false;
-					for (int i=0; i<20; i++) {
-						if (centerQuality[i]==1) {
+					for (int i=0; i<20; i++)
+					{
+						if (centerQuality[i]==1)
+						{
 							centerConnected=true;
 						}
 					}
 				}
-				uint16 temp[2];
+				uint16 temp[3];
+				temp[0]=m_pOs.id();
 				if (centerConnected)
 				{
-					temp[0]=1;
+					temp[1]=1;
 				}
 				else
 				{
-					temp[0]=0;
+					temp[1]=0;
 				}
-				temp[1]=m_pOs.id();
-				m_pCommunication->sendMessage(m_pOs.id(),0,"centerquality",2,temp);
+				temp[2]=ownCenterQuality;
+				m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"centerquality",3,temp);
 				//TODO richtige Bezeichnung
 				if (false) //(ROBOTSTATE.bumper)
 				{
@@ -467,9 +484,11 @@ void RobotLogic::execute(void *userdata)
 						doTask("drive",2,temp);
 					}
 				}
-				else if (!centerConnected)
+				//TODO was sinnvolles
+				else if ((!centerConnected)&&(!noNeighborsDetected))
 				{
-					uint16 temp[] = {-200,32768};
+					turn(180,0,m_pOs.time());
+					uint16 temp[] = {200,32768};
 					doTask("drive",2,temp);
 					noNeighborsDetected = true;
 				}/* else if ((neighborCount == 1)&&(noNeighborsDetected == false))
@@ -505,12 +524,15 @@ void RobotLogic::execute(void *userdata)
 					*(neighbors++);
 				}
 				isense::free(neighborsCopy);
-				if (m_pOs.id()!=centerID) {
-					if (centerQuality[centerCounter]>centerThreshold) {
+				if (m_pOs.id()!=centerID)
+				{
+					if (centerQuality[centerCounter]>centerThreshold)
+					{
 						stop();
 						activeTask=0;
 					}
-					else if (centerCounter==0) {
+					else if (centerCounter==0)
+					{
 						uint16 d=0;
 						int8 sum=0;
 						/*for (int i=1; i<maxCenterCounter; i++) {
@@ -524,7 +546,7 @@ void RobotLogic::execute(void *userdata)
 								}
 							}*/
 						sum=centerQuality[0]+centerQuality[1]+centerQuality[2]
-						                                                    -centerQuality[maxCenterCounter-2]-centerQuality[maxCenterCounter-1]-centerQuality[maxCenterCounter];
+						    -centerQuality[maxCenterCounter-2]-centerQuality[maxCenterCounter-1]-centerQuality[maxCenterCounter];
 						if (sum>0)
 						{
 							turn(180,0,m_pOs.time());

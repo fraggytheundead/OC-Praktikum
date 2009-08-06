@@ -83,6 +83,7 @@ protected:
 	NeighborhoodMonitor::neighbor* neighborsCopy;
 	uint16 centerQualityID[20];
 	uint8 centerQuality[20];
+	uint8 centerConnected[20];
 	uint8 centerCounter;
 	uint8 centerThreshold;
 	const static uint8 maxCenterCounter=6;

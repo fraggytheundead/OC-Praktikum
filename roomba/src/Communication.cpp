@@ -14,7 +14,6 @@
 #include "roombatest.h"
 #include "RobotLogic.h"
 
-static uint16 BROADCAST = 0;
 static uint16 GUI_ID = 0;
 static uint8 messageId = 0;
 
@@ -131,7 +130,9 @@ void Communication::sendMessage(uint16 robotId, uint16 destId,
 		for (int j = 0; j < taskNameLen; ++j) {
 			buf[pos + 2 * valueLength + j] = taskName[j];
 		}
-		buf[len - 1] = '\0';
+		//buf[len - 1] = '\0';
+		buf[len - 2] = 0;
+		buf[len - 1] = 0;
 		Flooding& flooding = ((roombatest *) m_os.application())->getFlooding();
 		flooding.send(len, buf);
 	}
@@ -141,6 +142,8 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 	RobotLogic* logic;
 	logic = ((roombatest *) m_os.application())->getRobotLogic();
 	uint16 destination;
+	destination=((buf[3] << 8) | buf[4]);
+	//m_os.debug("decodeMessage, messagetype: %i  Dest: %i", buf[0], destination);
 	switch (buf[0]) {
 	case 200:
 		destination = (buf[1] << 8) | buf[2];
@@ -172,7 +175,7 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 		if (destination == GUI_ID) { //TODO Ueberlegen was fuer ne ID fuer die GUI
 			m_os.uart(0).write_packet(isense::Uart::MESSAGE_TYPE_CUSTOM_IN_1,
 					(char*) buf, len);
-		} else if (destination == m_os.id()) {
+		} else if ((destination == m_os.id())||(destination==BROADCAST)) {
 			uint16 srcId;
 			uint8 valueLength;
 			uint16 *values;
@@ -187,6 +190,8 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 			}
 
 			taskName = (char *) buf + 6 + valueLength * 2;
+
+			//m_os.debug("decodeMessage: taskname=%s", taskName);
 
 			//TODO hier die Methode die bei sendMessage aufgerufen wird
 			// logic->doMessage(uint16 srcId, uint8 valueLength, uint16 values, char* taskName);
