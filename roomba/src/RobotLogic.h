@@ -79,6 +79,7 @@ protected:
 	uint8 songNumber;
 	bool taskBool;
 	bool timeoutBool;
+	bool noNeighborsDetected;
 	NeighborhoodMonitor::neighbor* neighbors;
 	NeighborhoodMonitor::neighbor* neighborsCopy;
 	uint16 centerQualityID[20];

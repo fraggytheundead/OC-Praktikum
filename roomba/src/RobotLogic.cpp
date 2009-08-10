@@ -30,7 +30,7 @@ RobotLogic::RobotLogic(Os& os, Uart *pUart, Communication *pCommunication) :
 	int c=0;
 	for (c=0; c<20; c++)
 	{
-		centerQualityID[c]=0xffff;
+		centerQualityID[c]=BROADCAST;
 	}
 
 	m_randOmat.srand((uint32) (m_pOs.time()).ms());
@@ -39,6 +39,8 @@ RobotLogic::RobotLogic(Os& os, Uart *pUart, Communication *pCommunication) :
 
 	lastAction = Time(0,0);
 	m_pOs.add_timeout_in(Time(MILLISECONDS), this, NULL);
+
+	noNeighborsDetected = false;
 }
 
 RobotLogic::~RobotLogic()
@@ -63,6 +65,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	{
 		if(paramLength == 2)
 		{
+			activeTask=-1;
 			lastAction = m_pOs.time();
 			m_pOs.debug("doTask: turnParam0:%i  Param1:%i",parameters[0],parameters[1]);
 			turn((int16) parameters[0], (uint8) (parameters[1] & 0xff), lastAction);
@@ -73,6 +76,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	{
 		if(paramLength == 1)
 		{
+			activeTask=-1;
 			lastAction = m_pOs.time();
 			m_pOs.debug("doTask: turnInfinite");
 			turnInfinite((int16) parameters[0]);
@@ -81,6 +85,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 
 	if(strcmp(taskName, "stop") == 0)
 	{
+		activeTask=-1;
 		lastAction = m_pOs.time();
 		m_pOs.debug("doTask: stop");
 		stop();
@@ -90,6 +95,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	{
 		if(paramLength == 3)
 		{
+			activeTask=-1;
 			lastAction = m_pOs.time();
 			m_pOs.debug("doTask: drveDist  Param0: %i  Param1: %i Param2: %i",parameters[0],parameters[1],parameters[2]);
 			driveDistance((uint16) parameters[0], (uint16) parameters[1], (uint16) parameters[2], lastAction);
@@ -122,32 +128,36 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 
 	if (strcmp(taskName, "centerquality") == 0)
 	{
+		m_pOs.debug("Centerquality Msgtest von %x ist %i %i",parameters[0],parameters[1],parameters[2]);
 		uint16 tempID;
 		tempID=parameters[0];
 		int i=0;
-		for (i=0; i<20; i++) {
+		m_pOs.debug("ID: %x",centerQualityID[i]);
+		for (i=0; i<19; i++) {
 			if (centerQualityID[i]==tempID) {
-				m_pOs.debug("Centerquality[%i] von %i ist %i %i",i,tempID,parameters[1],parameters[2]);
+				m_pOs.debug("Centerquality[%i] von %x ist %i %i",i,tempID,parameters[1],parameters[2]);
 				centerConnected[i]=parameters[1];
 				centerQuality[i]=parameters[2];
 				return;
 			}
 			if (centerQualityID[i]==BROADCAST) {
+				centerQualityID[i]=tempID;
+				centerConnected[i]=parameters[1];
+				centerQuality[i]=parameters[2];
+				m_pOs.debug("Centerquality[%i] von %x ist %i %i ",i,tempID,parameters[1],parameters[2]);
 				break;
 			}
 		}
-		centerQualityID[i]=tempID;
-		centerConnected[i]=parameters[1];
-		centerQuality[i]=parameters[2];
-		m_pOs.debug("Centerquality[%i] von %i ist %i %i ",i,tempID,parameters[1],parameters[2]);
 	}
 
-	if (strcmp(taskName, "findbase") == 0) {
-		usedemo(0);
+	if (strcmp(taskName, "usedemo") == 0) {
+		activeTask=-1;
+		usedemo(parameters[0]);
 	}
 
 	if(strcmp(taskName, "mitheme") == 0)
 	{
+		activeTask=-1;
 		miTheme();
 	}
 
@@ -159,10 +169,10 @@ void RobotLogic::getCapabilities()
 #ifdef DEBUG_GET_CAPABILITIES
 	m_pOs.debug("getCapabilities start");
 #endif
-	uint8 taskListLength = 9;
-	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme"};
+	uint8 taskListLength = 10;
+	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo"};
 	const char*** paramList;
-	const uint8 paramListLength[]={2,2,3,1,0,1,1,0};
+	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1};
 
 	// TODO
 	uint8 sensorLength = 3;
@@ -191,8 +201,10 @@ void RobotLogic::getCapabilities()
 	paramList[2][2] = "distance";
 	paramList[3][0] = "direction";
 	paramList[5][0] = "centerID";
+	paramList[5][1] = "threshold";
 	paramList[6][0] = "centerID";
-	paramList[7][0] = "centerID";
+	paramList[6][1] = "threshold";
+	paramList[9][0] = "number";
 
 	uint16 nodeID = m_pOs.id();
 
@@ -232,7 +244,6 @@ void RobotLogic::getCapabilities()
 
 void RobotLogic::turn(int16 angle, uint8 randomComponent, Time actionTime)
 {
-	activeTask = -1;
 	// 206mm/s == 90° / s
 	uint16 turnSpeed = 206;
 
@@ -266,14 +277,12 @@ void RobotLogic::turn(int16 angle, uint8 randomComponent, Time actionTime)
 
 void RobotLogic::turnInfinite(int16 turnVelocity)
 {
-	activeTask = -1;
 	m_Robot.driveDirect(turnVelocity,-turnVelocity);
 }
 
 void RobotLogic::stop()
 {
 //	m_pOs.debug("RobotLogic stop");
-	activeTask = -1;
 	m_Robot.driveDirect(0,0);
 }
 
@@ -285,9 +294,11 @@ void RobotLogic::spread(uint16 tempID,uint8 tempThreshold) {
 	activeTask=cSPREAD;
 	centerID = tempID;
 	centerThreshold=tempThreshold;
+	noNeighborsDetected=false;
 	for (int i=0; i<20; i++) {
 		centerQualityID[i] = 0;
 		centerQuality[i] = 0;
+		centerConnected[i] = 0;
 	}
 }
 
@@ -317,7 +328,6 @@ void RobotLogic::randomDrive() {
 		m_pOs.debug("randomDrive, linkQuality: %i", linkQuality);
 		*(neighbors++);
 	}
-	//TODO
 	turn(1,180,m_pOs.time());
 	uint16 temp[] = {200,32768};
 	doTask("drive",2,temp);
@@ -402,17 +412,17 @@ void RobotLogic::execute(void *userdata)
 		if((*task).id == ROBOT_ACTION_STOP && (*task).time.sec() == lastAction.sec() && (*task).time.ms() == lastAction.ms())
 		{
 			stop();
+			lastAction = NULL;
 		}
 
 		delete (taskStruct*) userdata;
 	}
 	else
 	{
-		bool noNeighborsDetected = false;
 		//m_pOs.debug("TIMEOUT ROBOTLOGIC");
 		if (activeTask==cSPREAD)
 		{
-			bool centerConnected;
+			bool bcenterConnected;
 			uint8 linkQuality;
 			uint8 neighborCount = 0;
 			uint8 ownCenterQuality = 0;
@@ -425,7 +435,7 @@ void RobotLogic::execute(void *userdata)
 				{
 					linkQuality = neighbors->value;
 					m_pOs.debug("spread, Nachbar addr: %x  linkQuality: %i", neighbors->addr, linkQuality);
-					if (linkQuality > 50)
+					if (linkQuality > centerThreshold)
 					{
 						neighborCount++;
 					}
@@ -442,22 +452,22 @@ void RobotLogic::execute(void *userdata)
 			}
 			if (m_pOs.id()!=centerID)
 			{
-				centerConnected=true;
-				if (ownCenterQuality<50)
+				bcenterConnected=true;
+				if (ownCenterQuality<centerThreshold)
 				{
 					stop();
-					centerConnected=false;
+					bcenterConnected=false;
 					for (int i=0; i<20; i++)
 					{
-						if (centerQuality[i]==1)
+						if (centerConnected[i]==1)
 						{
-							centerConnected=true;
+							bcenterConnected=true;
 						}
 					}
 				}
 				uint16 temp[3];
 				temp[0]=m_pOs.id();
-				if (centerConnected)
+				if (bcenterConnected)
 				{
 					temp[1]=1;
 				}
@@ -472,7 +482,7 @@ void RobotLogic::execute(void *userdata)
 				{
 					turn(90,10,m_pOs.time());
 				}
-				else if (centerConnected)
+				else if (bcenterConnected)
 				{
 					if (noNeighborsDetected)
 					{
@@ -485,9 +495,14 @@ void RobotLogic::execute(void *userdata)
 					}
 				}
 				//TODO was sinnvolles
-				else if ((!centerConnected)&&(!noNeighborsDetected))
+				else if ((!bcenterConnected)&&(!noNeighborsDetected))
 				{
-					turn(180,0,m_pOs.time());
+//					turn(180,0,m_pOs.time());
+//					// TODO irgendwie warten bis der Turn fertig ist und dann erst drive ausführen.
+					// turn 180°
+					uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
+					m_Robot.setScript(turnscript, 8);
+					m_Robot.executeScript();
 					uint16 temp[] = {200,32768};
 					doTask("drive",2,temp);
 					noNeighborsDetected = true;
@@ -533,18 +548,7 @@ void RobotLogic::execute(void *userdata)
 					}
 					else if (centerCounter==0)
 					{
-						uint16 d=0;
-						int8 sum=0;
-						/*for (int i=1; i<maxCenterCounter; i++) {
-								d=centerQuality[i]-centerQuality[i-1];
-								if (d<=0) {
-									sum=sum-1;
-								}
-								else
-								{
-									sum=sum+1;
-								}
-							}*/
+						int16 sum=0;
 						sum=centerQuality[0]+centerQuality[1]+centerQuality[2]
 						    -centerQuality[maxCenterCounter-2]-centerQuality[maxCenterCounter-1]-centerQuality[maxCenterCounter];
 						if (sum>0)
