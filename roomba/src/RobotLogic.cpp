@@ -66,9 +66,8 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		if(paramLength == 2)
 		{
 			activeTask=-1;
-			lastAction = m_pOs.time();
 			m_pOs.debug("doTask: turnParam0:%i  Param1:%i",parameters[0],parameters[1]);
-			turn((int16) parameters[0], (uint8) (parameters[1] & 0xff), lastAction);
+			turn((int16) parameters[0], (uint8) (parameters[1] & 0xff));
 		}
 	}
 
@@ -77,7 +76,6 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		if(paramLength == 1)
 		{
 			activeTask=-1;
-			lastAction = m_pOs.time();
 			m_pOs.debug("doTask: turnInfinite");
 			turnInfinite((int16) parameters[0]);
 		}
@@ -86,7 +84,6 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	if(strcmp(taskName, "stop") == 0)
 	{
 		activeTask=-1;
-		lastAction = m_pOs.time();
 		m_pOs.debug("doTask: stop");
 		stop();
 	}
@@ -96,9 +93,8 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		if(paramLength == 3)
 		{
 			activeTask=-1;
-			lastAction = m_pOs.time();
 			m_pOs.debug("doTask: drveDist  Param0: %i  Param1: %i Param2: %i",parameters[0],parameters[1],parameters[2]);
-			driveDistance((uint16) parameters[0], (uint16) parameters[1], (uint16) parameters[2], lastAction);
+			driveDistance((uint16) parameters[0], (uint16) parameters[1], (uint16) parameters[2]);
 
 		}
 	}
@@ -161,7 +157,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		miTheme();
 	}
 
-	m_pOs.debug("ActionTime: %i s %i ms", lastAction.sec(), lastAction.ms());
+//	m_pOs.debug("ActionTime: %i s %i ms", lastAction.sec(), lastAction.ms());
 }
 
 void RobotLogic::getCapabilities()
@@ -242,10 +238,14 @@ void RobotLogic::getCapabilities()
 #endif
 }
 
-void RobotLogic::turn(int16 angle, uint8 randomComponent, Time actionTime)
+void RobotLogic::turn(int16 angle, uint8 randomComponent)
 {
 	// 206mm/s == 90° / s
 	uint16 turnSpeed = 206;
+
+	Time actionTime = m_pOs.time();
+	lastAction = actionTime;
+
 
 	if(randomComponent > 0)
 	{
@@ -282,6 +282,7 @@ void RobotLogic::turnInfinite(int16 turnVelocity)
 
 void RobotLogic::stop()
 {
+	lastAction = m_pOs.time();
 //	m_pOs.debug("RobotLogic stop");
 	m_Robot.driveDirect(0,0);
 }
@@ -328,7 +329,7 @@ void RobotLogic::randomDrive() {
 		m_pOs.debug("randomDrive, linkQuality: %i", linkQuality);
 		*(neighbors++);
 	}
-	turn(1,180,m_pOs.time());
+	turn(1,180);
 	uint16 temp[] = {200,32768};
 	doTask("drive",2,temp);
 }
@@ -368,8 +369,11 @@ void RobotLogic::miTheme()
 }
 
 
-void RobotLogic::driveDistance(uint16 speed, uint16 radius, uint16 distance, Time actionTime)
+void RobotLogic::driveDistance(uint16 speed, uint16 radius, uint16 distance)
 {
+	Time actionTime = m_pOs.time();
+	lastAction = actionTime;
+
 	taskStruct *task = new taskStruct();
 	(*task).id = ROBOT_ACTION_STOP;
 	(*task).time = actionTime;
@@ -412,7 +416,6 @@ void RobotLogic::execute(void *userdata)
 		if((*task).id == ROBOT_ACTION_STOP && (*task).time.sec() == lastAction.sec() && (*task).time.ms() == lastAction.ms())
 		{
 			stop();
-			lastAction = NULL;
 		}
 
 		delete (taskStruct*) userdata;
@@ -480,7 +483,7 @@ void RobotLogic::execute(void *userdata)
 				//TODO richtige Bezeichnung
 				if (false) //(ROBOTSTATE.bumper)
 				{
-					turn(90,10,m_pOs.time());
+					turn(90,10);
 				}
 				else if (bcenterConnected)
 				{
@@ -497,7 +500,7 @@ void RobotLogic::execute(void *userdata)
 				//TODO was sinnvolles
 				else if ((!bcenterConnected)&&(!noNeighborsDetected))
 				{
-//					turn(180,0,m_pOs.time());
+//					turn(180,0);
 //					// TODO irgendwie warten bis der Turn fertig ist und dann erst drive ausführen.
 					// turn 180°
 					uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
@@ -553,7 +556,7 @@ void RobotLogic::execute(void *userdata)
 						    -centerQuality[maxCenterCounter-2]-centerQuality[maxCenterCounter-1]-centerQuality[maxCenterCounter];
 						if (sum>0)
 						{
-							turn(180,0,m_pOs.time());
+							turn(180,0);
 							uint16 temp[] = {200,32768};
 							doTask("drive",2,temp);
 						}
@@ -590,12 +593,12 @@ void RobotLogic::execute(void *userdata)
 				isense::free(neighborsCopy);
 			}
 			if (neighborCount==0) {
-				turn(180,0,m_pOs.time());
+				turn(180,0);
 				uint16 temp[] = {200,32768};
 				doTask("drive",2,temp);
 			}
 			if (false) {//TODO (bumper==1) {
-				turn(90,0,m_pOs.time());
+				turn(90,0);
 				uint16 temp[] = {200,32768};
 				doTask("drive",2,temp);
 			}

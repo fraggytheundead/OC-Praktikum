@@ -56,14 +56,14 @@ public:
 
 protected:
 	PseudoRandomNumberGenerator m_randOmat;
-	void turn(int16 angle, uint8 randomComponent, Time actionTime);
+	void turn(int16 angle, uint8 randomComponent);
 	void turnInfinite(int16 direction);
 	void stop();
 	void spread(uint16 tempID,uint8 tempThreshold);
 	void gather(uint16 tempID,uint8 tempThreshold);
 	void randomDrive();
 	void usedemo(int demoNr);
-	void driveDistance(uint16 speed, uint16 radius, uint16 distance, Time actionTime);
+	void driveDistance(uint16 speed, uint16 radius, uint16 distance);
 	Communication *m_pCommunication;
 	Os& m_pOs;
 	Robot m_Robot;
