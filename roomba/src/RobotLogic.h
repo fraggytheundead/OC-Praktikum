@@ -20,7 +20,7 @@
 #include <isense/util/util.h>
 //#include <isense/platforms/jennic/jennic_os.h>
 #include <isense/util/pseudo_random_number_generator.h>
-#include "CreateRobot.h"
+#include "Robot.h"
 #include "Communication.h"
 #include <isense/isense_memory.h>
 #include <isense/protocols/routing/neighborhood_monitor.h>
@@ -46,8 +46,14 @@ public:
 	virtual ~RobotLogic();
 	void doTask(const char* taskName, uint8 paramLength, const uint16 *parameters);
 	void getCapabilities();
-	virtual void onStateChanged(PCROBOTSTATE pState);
-	virtual void onChecksumError();
+	virtual void onIoModeChanged(uint8 ioMode);
+	virtual void onPowerStateChanged(PCPOWERSTATE pState);
+	virtual void onCliffStateChanged(PCCLIFFSTATE pState);
+	virtual void onMovementStateChanged(PCMOVEMENTSTATE pState);
+	virtual void onButtonChanged(uint8 buttons);
+	virtual void onWallSensorChanged(uint8 wall, uint8 virtualWall);
+	virtual void onBumpAndWheelDrop(uint8 bumpsAndWheelDrop);
+	virtual void onSongStateChanged(uint8 songNumber, uint8 songPlaying);
 
 	///From isense::TimeoutHandler
 	virtual void timeout(void *userdata);
@@ -89,6 +95,7 @@ protected:
 	uint8 centerThreshold;
 	const static uint8 maxCenterCounter=6;
 	Time lastAction;
+	uint8 bumpsAndWheeldrop;
 
 };
 

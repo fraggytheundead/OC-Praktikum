@@ -41,6 +41,8 @@ RobotLogic::RobotLogic(Os& os, Uart *pUart, Communication *pCommunication) :
 	m_pOs.add_timeout_in(Time(MILLISECONDS), this, NULL);
 
 	noNeighborsDetected = false;
+
+	bumpsAndWheeldrop = 0;
 }
 
 RobotLogic::~RobotLogic()
@@ -398,7 +400,7 @@ void RobotLogic::timeout(void *userdata)
 	else
 	{
 		taskBool=m_pOs.add_task(this, NULL);
-		timeoutBool=m_pOs.add_timeout_in(Time(2 * MILLISECONDS), this, NULL);
+		timeoutBool=m_pOs.add_timeout_in(Time(MILLISECONDS/10), this, NULL);
 		//m_pOs.debug("ROBOTLOGIC taskbool:%i",taskBool);
 		//m_pOs.debug("ROBOTLOGIC timeoutbool:%i",timeoutBool);
 		timeoutCounter++;
@@ -481,9 +483,13 @@ void RobotLogic::execute(void *userdata)
 				temp[2]=ownCenterQuality;
 				m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"centerquality",3,temp);
 				//TODO richtige Bezeichnung
-				if (false) //(ROBOTSTATE.bumper)
+				if (bumpsAndWheeldrop&1)
 				{
 					turn(90,10);
+				}
+				else if (bumpsAndWheeldrop&2)
+				{
+					turn(-90,10);
 				}
 				else if (bcenterConnected)
 				{
@@ -556,7 +562,9 @@ void RobotLogic::execute(void *userdata)
 						    -centerQuality[maxCenterCounter-2]-centerQuality[maxCenterCounter-1]-centerQuality[maxCenterCounter];
 						if (sum>0)
 						{
-							turn(180,0);
+							uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
+							m_Robot.setScript(turnscript, 8);
+							m_Robot.executeScript();
 							uint16 temp[] = {200,32768};
 							doTask("drive",2,temp);
 						}
@@ -593,45 +601,69 @@ void RobotLogic::execute(void *userdata)
 				isense::free(neighborsCopy);
 			}
 			if (neighborCount==0) {
-				turn(180,0);
+				uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
+				m_Robot.setScript(turnscript, 8);
+				m_Robot.executeScript();
 				uint16 temp[] = {200,32768};
 				doTask("drive",2,temp);
 			}
-			if (false) {//TODO (bumper==1) {
-				turn(90,0);
-				uint16 temp[] = {200,32768};
-				doTask("drive",2,temp);
-			}
-		}
-		if (activeTask==cMITHEME)
-		{
-			m_pOs.debug("MITHEME");
-			timeoutCounter=timeoutCounter+1;
-			if (timeoutCounter>2)
+			if (bumpsAndWheeldrop&1)
 			{
-				songNumber=songNumber+1;
-				timeoutCounter=0;
+				uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 90};
+				m_Robot.setScript(turnscript, 8);
+				m_Robot.executeScript();
+				uint16 temp[] = {200,32768};
+				doTask("drive",2,temp);
 			}
-			m_Robot.playSong(songNumber);
 		}
 	}
 }
 
-void RobotLogic::onStateChanged(PCROBOTSTATE pState)
+void RobotLogic::onIoModeChanged(uint8 ioMode)
 {
-	static bool b = false;
-
-	//	if(b)
-	//		CoreModule(*g_pOS).led_on();
-	//	else
-	//		CoreModule(*g_pOS).led_off();
-	m_pOs.debug("bumpAndWheelDrop: %x, batteryCharge: %i, batteryTemperature: %i",
-			pState->bumpAndWheelDrop, pState->batteryCapacity, pState->batteryTemperature);
-
-	b = !b;
 }
 
-void RobotLogic::onChecksumError()
+void RobotLogic::onPowerStateChanged(PCPOWERSTATE pState)
 {
-	m_pOs.debug("ChecksumError");
+}
+
+void RobotLogic::onCliffStateChanged(PCCLIFFSTATE pState)
+{
+}
+
+void RobotLogic::onMovementStateChanged(PCMOVEMENTSTATE pState)
+{
+}
+
+void RobotLogic::onButtonChanged(uint8 buttons)
+{
+	m_pOs.debug("Button changed: %d", buttons);
+}
+
+void RobotLogic::onWallSensorChanged(uint8 wall, uint8 virtualWall)
+{
+}
+
+void RobotLogic::onBumpAndWheelDrop(uint8 bumpsAndWheelDrop)
+{
+	m_pOs.debug("Bump and wheel drop: %d", bumpsAndWheelDrop);
+	bumpsAndWheeldrop = bumpsAndWheelDrop;
+}
+
+void RobotLogic::onSongStateChanged(uint8 songNumber, uint8 songPlaying)
+{
+	if (activeTask==cMITHEME)
+	{
+		if (songPlaying==0)
+		{
+			songNumber=songNumber+1;
+			m_pOs.debug("MITHEME %i",songNumber);
+			m_Robot.playSong(songNumber);
+		}
+		if (songNumber>3)
+		{
+			activeTask=-1;
+		}
+	}
+
 }
