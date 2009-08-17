@@ -177,6 +177,16 @@ void Robot::drive(uint16 velocity, uint16 radius)
 	m_pUart->write_buffer(buff, 5);
 }
 
+void Robot::driveStraight(uint16 velocity) {
+	char buff[5];
+	buff[0] = CMD_DRIVE;
+	buff[1] = 0xff & (velocity >> 8);
+	buff[2] = 0xff & velocity;
+	buff[3] = 0x80;
+	buff[4] = 0x00;
+	m_pUart->write_buffer(buff, 5);
+}
+
 /**
  * Makes the Create Robot drive, turning the two wheels at the given speeds
  * @param leftVelocity speed of the left wheel. Valid values are between -500 mm/s and 500 mm/s

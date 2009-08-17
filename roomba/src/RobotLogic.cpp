@@ -166,6 +166,24 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		miTheme();
 	}
 
+	if(strcmp(taskName, "driveStraight") == 0)
+	{
+		if(paramLength == 1)
+		{
+			activeTask=-1;
+			m_Robot.driveStraight(parameters[0]);
+		}
+	}
+
+	if(strcmp(taskName, "driveStraightDistance") == 0)
+	{
+		if(paramLength == 1)
+		{
+			activeTask=-1;
+			driveStraightDistance(parameters[0], parameters[1]);
+		}
+	}
+
 //	m_pOs.debug("ActionTime: %i s %i ms", lastAction.sec(), lastAction.ms());
 }
 
@@ -174,10 +192,10 @@ void RobotLogic::getCapabilities()
 #ifdef DEBUG_GET_CAPABILITIES
 	m_pOs.debug("getCapabilities start");
 #endif
-	uint8 taskListLength = 10;
-	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo"};
+	uint8 taskListLength = 12;
+	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo", "driveStraight", "driveStraightDistance"};
 	const char*** paramList;
-	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1};
+	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1,1,2};
 
 	// TODO
 	uint8 sensorLength = 3;
@@ -210,6 +228,9 @@ void RobotLogic::getCapabilities()
 	paramList[6][0] = "centerID";
 	paramList[6][1] = "threshold";
 	paramList[9][0] = "number";
+	paramList[10][0] = "speed";
+	paramList[11][0] = "speed";
+	paramList[11][1] = "distance";
 
 	uint16 nodeID = m_pOs.id();
 
@@ -384,6 +405,21 @@ void RobotLogic::driveDistance(uint16 speed, uint16 radius, uint16 distance)
 	m_Robot.drive(speed, radius);
 	m_pOs.add_timeout_in(distanceTime, this, (void*) task);
 //	m_pOs.debug("RobotLogic turn, taskadresse %x", task);
+}
+
+void RobotLogic::driveStraightDistance(uint16 speed, uint16 distance)
+{
+	Time actionTime = m_pOs.time();
+	lastAction = actionTime;
+
+	taskStruct *task = new taskStruct();
+	(*task).id = ROBOT_ACTION_STOP;
+	(*task).time = actionTime;
+	uint32 seconds = distance / speed;
+	uint16 msecs = ((1000 * distance) / speed) - 1000 * seconds;
+	Time distanceTime =  Time(seconds, msecs);
+	m_Robot.driveStraight(speed);
+	m_pOs.add_timeout_in(distanceTime, this, (void*) task);
 }
 
 void RobotLogic::timeout(void *userdata)

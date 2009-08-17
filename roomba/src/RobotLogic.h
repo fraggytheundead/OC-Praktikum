@@ -70,6 +70,7 @@ protected:
 	void randomDrive();
 	void usedemo(int demoNr);
 	void driveDistance(uint16 speed, uint16 radius, uint16 distance);
+	void driveStraightDistance(uint16 speed, uint16 distance);
 	Communication *m_pCommunication;
 	Os& m_pOs;
 	Robot m_Robot;
