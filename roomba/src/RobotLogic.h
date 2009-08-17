@@ -88,6 +88,8 @@ protected:
 	bool noNeighborsDetected;
 	NeighborhoodMonitor::neighbor* neighbors;
 	NeighborhoodMonitor::neighbor* neighborsCopy;
+	uint16 linkQualityID[20];
+	uint8 linkQualityArray[20];
 	uint16 centerQualityID[20];
 	uint8 centerQuality[20];
 	uint8 centerConnected[20];
