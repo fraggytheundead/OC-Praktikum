@@ -94,8 +94,11 @@ protected:
 	uint16 centerQualityID[20];
 	uint8 centerQuality[20];
 	uint8 centerConnected[20];
+	uint8 centerTimeoutCounter[20];
+	const static uint8 maxTimeout=40;
 	uint8 centerCounter;
 	uint8 centerThreshold;
+	uint8 hops;
 	const static uint8 maxCenterCounter=6;
 	Time lastAction;
 	uint8 bumpsAndWheeldrop;

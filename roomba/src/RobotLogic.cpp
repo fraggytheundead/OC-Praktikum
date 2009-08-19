@@ -17,6 +17,7 @@
 #include "roombatest.h"
 
 #define DEBUG_GET_CAPABILITIES
+//#define DEBUG_DOTASK
 
 RobotLogic::RobotLogic(Os& os, Uart *pUart, Communication *pCommunication) :
 	m_pOs(os),
@@ -52,13 +53,17 @@ RobotLogic::~RobotLogic()
 
 void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *parameters)
 {
+#ifdef DEBUG_DOTASK
 	m_pOs.debug("doTask STRING, ID: %s, paramLength: %i", taskName, paramLength);
+#endif
 	if(strcmp(taskName, "drive") == 0)
 	{
 		if(paramLength == 2)
 		{
 			lastAction = m_pOs.time();
+#ifdef DEBUG_DOTASK
 			m_pOs.debug("doTask: drive  Param0:%i  Param1:%i",parameters[0],parameters[1]);
+#endif
 			m_Robot.drive((uint16) parameters[0], (uint16) parameters[1]);
 		}
 	}
@@ -68,7 +73,9 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		if(paramLength == 2)
 		{
 			activeTask=-1;
+#ifdef DEBUG_DOTASK
 			m_pOs.debug("doTask: turnParam0:%i  Param1:%i",parameters[0],parameters[1]);
+#endif
 			turn((int16) parameters[0], (uint8) (parameters[1] & 0xff));
 		}
 	}
@@ -78,15 +85,19 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		if(paramLength == 1)
 		{
 			activeTask=-1;
+#ifdef DEBUG_DOTASK
 			m_pOs.debug("doTask: turnInfinite");
 			turnInfinite((int16) parameters[0]);
+#endif
 		}
 	}
 
 	if(strcmp(taskName, "stop") == 0)
 	{
 		activeTask=-1;
+#ifdef DEBUG_DOTASK
 		m_pOs.debug("doTask: stop");
+#endif
 		stop();
 	}
 
@@ -95,7 +106,9 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		if(paramLength == 3)
 		{
 			activeTask=-1;
+#ifdef DEBUG_DOTASK
 			m_pOs.debug("doTask: drveDist  Param0: %i  Param1: %i Param2: %i",parameters[0],parameters[1],parameters[2]);
+#endif
 			driveDistance((uint16) parameters[0], (uint16) parameters[1], (uint16) parameters[2]);
 
 		}
@@ -103,7 +116,9 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 
 	if (strcmp(taskName, "spread") == 0)
 	{
+#ifdef DEBUG_DOTASK
 		m_pOs.debug("doTask: spread");
+#endif
 		spread(parameters[0],parameters[1]);
 	}
 
@@ -131,17 +146,17 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 
 	if (strcmp(taskName, "cquality") == 0)
 	{
-		m_pOs.debug("Centerquality Msgtest von %x ist %i %i",parameters[0],parameters[1],parameters[2]);
+		//m_pOs.debug("Centerquality Msgtest von %x ist %i %i",parameters[0],parameters[1],parameters[2]);
 		uint16 tempID;
 		tempID=parameters[0];
 		int i=0;
 		for (i=0; i<20; i++) {
-			m_pOs.debug("ID[]: %x",centerQualityID[i]);
 			if (centerQualityID[i]==tempID)
 			{
-				m_pOs.debug("Centerquality[%i] von %x ist %i %i",i,tempID,parameters[1],parameters[2]);
+				//m_pOs.debug("Centerquality[%i] von %x ist %i %i",i,tempID,parameters[1],parameters[2]);
 				centerConnected[i]=parameters[1];
 				centerQuality[i]=parameters[2];
+				centerTimeoutCounter[i]=0;
 				return;
 			}
 			if (centerQualityID[i]==BROADCAST)
@@ -149,7 +164,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 				centerQualityID[i]=tempID;
 				centerConnected[i]=parameters[1];
 				centerQuality[i]=parameters[2];
-				m_pOs.debug("Centerquality[%i] von %x ist %i %i ",i,tempID,parameters[1],parameters[2]);
+				//m_pOs.debug("Centerquality[%i] von %x ist %i %i ",i,tempID,parameters[1],parameters[2]);
 				break;
 			}
 		}
@@ -192,10 +207,13 @@ void RobotLogic::getCapabilities()
 #ifdef DEBUG_GET_CAPABILITIES
 	m_pOs.debug("getCapabilities start");
 #endif
-	uint8 taskListLength = 12;
-	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo", "driveStraight", "driveStraightDistance"};
+	//uint8 taskListLength = 12;
+	uint8 taskListLength=10;
+	//const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo", "driveStraight", "driveStraightDistance"};
+	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo"};
 	const char*** paramList;
-	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1,1,2};
+	//const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1,1,2};
+	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1};
 
 	// TODO
 	uint8 sensorLength = 3;
@@ -228,9 +246,9 @@ void RobotLogic::getCapabilities()
 	paramList[6][0] = "centerID";
 	paramList[6][1] = "threshold";
 	paramList[9][0] = "number";
-	paramList[10][0] = "speed";
+	/*paramList[10][0] = "speed";
 	paramList[11][0] = "speed";
-	paramList[11][1] = "distance";
+	paramList[11][1] = "distance";*/
 
 	uint16 nodeID = m_pOs.id();
 
@@ -325,6 +343,7 @@ void RobotLogic::usedemo(int demoNr)
 void RobotLogic::spread(uint16 tempID,uint8 tempThreshold)
 {
 	activeTask=cSPREAD;
+	hops=255;
 	centerID = tempID;
 	centerThreshold=tempThreshold;
 	noNeighborsDetected=false;
@@ -471,7 +490,7 @@ void RobotLogic::execute(void *userdata)
 				while (neighbors->addr != 0xFFFF)
 				{
 					linkQuality = neighbors->value;
-					m_pOs.debug("spread, Nachbar addr: %x  linkQuality: %i", neighbors->addr, linkQuality);
+					//m_pOs.debug("spread, Nachbar addr: %x  linkQuality: %i", neighbors->addr, linkQuality);
 					neighborCount++;
 					linkQualityArray[neighborCount]=linkQuality;
 					linkQualityID[neighborCount]=neighbors->addr;
@@ -486,6 +505,18 @@ void RobotLogic::execute(void *userdata)
 			{
 				neighborCount=0;
 			}
+
+			for (int i=0; i<20; i++)
+			{
+				centerTimeoutCounter[i]++;
+				if (centerTimeoutCounter[i]>maxTimeout)
+				{
+					centerQualityID[i]=BROADCAST;
+					centerQuality[i]=0;
+					centerConnected[i]=0;
+				}
+			}
+
 			if (m_pOs.id()!=centerID)
 			{
 				bcenterConnected=true;
@@ -503,22 +534,39 @@ void RobotLogic::execute(void *userdata)
 								templinkQuality=linkQualityArray[n];
 							}
 						}
-						if ((centerConnected[i]==1)&&(templinkQuality>centerThreshold))
+						if ((centerConnected[i]>0)&&(templinkQuality>centerThreshold))
 						{
-							bcenterConnected=true;
+							if ((centerConnected[i]<=hops+1))//||(hops==0))
+							{
+								m_pOs.debug("Connected over ID:%x    Hop:%i",centerQualityID[i],centerConnected[i]);
+								bcenterConnected=true;
+								hops=centerConnected[i];
+							}
+							else
+							{
+								m_pOs.debug("Illegaler Hop ID:%x    Hops:%i",centerQualityID[i],centerConnected[i]);
+								bcenterConnected=false;
+							}
 						}
 					}
+				}
+				else
+				{
+					hops=0;
+					m_pOs.debug("Directly Connected:%i",ownCenterQuality);
 				}
 				uint16 temp[3];
 				temp[0]=m_pOs.id();
 				if (bcenterConnected)
 				{
-					temp[1]=1;
+					temp[1]=hops+1;
 				}
 				else
 				{
+					m_pOs.debug("Not Connected");
 					temp[1]=0;
 				}
+				m_pOs.debug("Hops:%i",hops);
 				temp[2]=ownCenterQuality;
 				m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"cquality",3,temp);
 				//TODO richtige Bezeichnung

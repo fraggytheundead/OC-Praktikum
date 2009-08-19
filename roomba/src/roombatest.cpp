@@ -40,6 +40,8 @@ void roombatest::boot(void) {
 	os_.radio().hardware_radio().set_channel(20);
     os_.debug("Boot");
 //    m_robotLogic.getCapabilities();
+//    uint16 temp[] = {0x1bfc,70};
+//    m_robotLogic.doTask("spread",2,temp);
 }
 
 //----------------------------------------------------------------------------
@@ -59,7 +61,7 @@ void roombatest::wake_up(bool memory_held) {
 void roombatest::execute(void* userdata) {
 //	m_robotLogic.getCapabilities();
 	m_comModule.sendMessage(os_.id(),BROADCAST,"patapatapata",0,NULL);
-	//os_.debug("Timeout Length: %i",length);
+	//os_.debug("Timeout patapata");
 }
 
 void roombatest::receive(uint8 len, const uint8 * buf, uint16 src_addr,
