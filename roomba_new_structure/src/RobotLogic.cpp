@@ -34,11 +34,8 @@ RobotLogic::RobotLogic(Os& os, Uart *pUart, Communication *pCommunication) :
 		centerQualityID[c]=BROADCAST;
 	}
 
-	m_randOmat.srand((uint32) (m_pOs.time()).ms());
-
 	m_pCommunication = pCommunication;
 
-	lastAction = Time(0,0);
 	m_pOs.add_timeout_in(Time(MILLISECONDS), this, NULL);
 
 	noNeighborsDetected = false;
@@ -60,7 +57,6 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	{
 		if(paramLength == 2)
 		{
-			lastAction = m_pOs.time();
 #ifdef DEBUG_DOTASK
 			m_pOs.debug("doTask: drive  Param0:%i  Param1:%i",parameters[0],parameters[1]);
 #endif
@@ -76,7 +72,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 #ifdef DEBUG_DOTASK
 			m_pOs.debug("doTask: turnParam0:%i  Param1:%i",parameters[0],parameters[1]);
 #endif
-			turn((int16) parameters[0], (uint8) (parameters[1] & 0xff));
+			m_Robot.turn((int16) parameters[0], (uint8) (parameters[1] & 0xff));
 		}
 	}
 
@@ -98,7 +94,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 #ifdef DEBUG_DOTASK
 		m_pOs.debug("doTask: stop");
 #endif
-		stop();
+		m_Robot.stop();
 	}
 
 	if(strcmp(taskName, "driveDistance") == 0)
@@ -109,7 +105,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 #ifdef DEBUG_DOTASK
 			m_pOs.debug("doTask: drveDist  Param0: %i  Param1: %i Param2: %i",parameters[0],parameters[1],parameters[2]);
 #endif
-			driveDistance((uint16) parameters[0], (uint16) parameters[1], (uint16) parameters[2]);
+			m_Robot.driveDistance((uint16) parameters[0], (uint16) parameters[1], (uint16) parameters[2]);
 
 		}
 	}
@@ -173,7 +169,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	if (strcmp(taskName, "usedemo") == 0)
 	{
 		activeTask=-1;
-		usedemo(parameters[0]);
+		m_Robot.startDemo(parameters[0]);
 	}
 
 	if(strcmp(taskName, "mitheme") == 0)
@@ -195,13 +191,8 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		if(paramLength == 1)
 		{
 			activeTask=-1;
-			driveStraightDistance(parameters[0], parameters[1]);
+			m_Robot.driveStraightDistance(parameters[0], parameters[1]);
 		}
-	}
-
-	if(strcmp(taskName, "led") == 0)
-	{
-		m_Robot.setLeds(parameters[0], parameters[1], parameters[2]);
 	}
 
 //	m_pOs.debug("ActionTime: %i s %i ms", lastAction.sec(), lastAction.ms());
@@ -218,7 +209,7 @@ void RobotLogic::getCapabilities()
 	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo"};
 	const char*** paramList;
 	//const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1,1,2};
-	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1,3};
+	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1};
 
 	// TODO
 	uint8 sensorLength = 3;
@@ -291,60 +282,6 @@ void RobotLogic::getCapabilities()
 #endif
 }
 
-void RobotLogic::turn(int16 angle, uint8 randomComponent)
-{
-	// 206mm/s == 90° / s
-	uint16 turnSpeed = 206;
-
-	Time actionTime = m_pOs.time();
-	lastAction = actionTime;
-
-
-	if(randomComponent > 0)
-	{
-		int8 random = (int8) (m_randOmat.rand(randomComponent) & 0xff);
-		angle += (int16) random;
-	}
-
-	uint16 turnDirection = 0x0001;
-	if(angle < 0)
-	{
-		turnDirection = 0xffff;
-		angle = angle * -1;
-	}
-
-	m_Robot.drive(turnSpeed, turnDirection);
-
-	taskStruct *task = new taskStruct();
-	(*task).id = ROBOT_ACTION_STOP;
-	(*task).time = actionTime;
-	uint32 seconds = angle / 90;
-	uint16 msecs = (1000 * angle / 90) - 1000 * seconds;
-	Time turnTime =  Time(seconds, msecs);
-
-//	m_pOs.debug("RobotLogic turn, angle: %i, seconds: %i, msecs: %i", angle, seconds, msecs);
-//	m_pOs.debug("RobotLogic turn, taskID: %i, TaskTime: %i s %i ms", (*task).id, (*task).time.sec(), (*task).time.ms());
-	m_pOs.add_timeout_in(turnTime, this,(void*) task);
-//	m_pOs.debug("RobotLogic turn, taskadresse %x", task);
-}
-
-void RobotLogic::turnInfinite(int16 turnVelocity)
-{
-	m_Robot.driveDirect(turnVelocity,-turnVelocity);
-}
-
-void RobotLogic::stop()
-{
-	lastAction = m_pOs.time();
-//	m_pOs.debug("RobotLogic stop");
-	m_Robot.driveDirect(0,0);
-}
-
-void RobotLogic::usedemo(int demoNr)
-{
-	m_Robot.startDemo(demoNr);
-}
-
 void RobotLogic::spread(uint16 tempID,uint8 tempThreshold)
 {
 	activeTask=cSPREAD;
@@ -365,7 +302,6 @@ void RobotLogic::gather(uint16 tempID,uint8 tempThreshold)
 	activeTask = cGATHER;
 	centerID = tempID;
 	centerThreshold=tempThreshold;
-	gatherDistance=100;
 	for (int i = 0; i<20; i++)
 	{
 		centerQualityID[i] = BROADCAST;
@@ -377,9 +313,6 @@ void RobotLogic::gather(uint16 tempID,uint8 tempThreshold)
 		uint16 temp[] = {200,32768};
 		doTask("drive",2,temp);
 	}
-	oldGatherSum=0;
-	gatherSum=0;
-	timeoutCounter=0;
 }
 
 void RobotLogic::randomDrive()
@@ -394,7 +327,7 @@ void RobotLogic::randomDrive()
 		m_pOs.debug("randomDrive, linkQuality: %i", linkQuality);
 		*(neighbors++);
 	}
-	turn(1,180);
+	m_Robot.turn(1,180);
 	uint16 temp[] = {200,32768};
 	doTask("drive",2,temp);
 }
@@ -414,40 +347,6 @@ void RobotLogic::miTheme()
 
 	songNumber=0;
 	m_Robot.playSong(songNumber);
-}
-
-
-void RobotLogic::driveDistance(uint16 speed, uint16 radius, uint16 distance)
-{
-	Time actionTime = m_pOs.time();
-	lastAction = actionTime;
-
-	taskStruct *task = new taskStruct();
-	(*task).id = ROBOT_ACTION_STOP;
-	(*task).time = actionTime;
-	uint32 seconds = distance / speed;
-	uint16 msecs = ((1000 * distance) / speed) - 1000 * seconds;
-//	m_pOs.debug("RobotLogic driveDistance, distance: %i, speed: %i, seconds: %i, msecs: %i", distance, speed, seconds, msecs);
-//	m_pOs.debug("RobotLogic turn, taskID: %i, TaskTime: %i s %i ms", (*task).id, (*task).time.sec(), (*task).time.ms());
-	Time distanceTime =  Time(seconds, msecs);
-	m_Robot.drive(speed, radius);
-	m_pOs.add_timeout_in(distanceTime, this, (void*) task);
-//	m_pOs.debug("RobotLogic turn, taskadresse %x", task);
-}
-
-void RobotLogic::driveStraightDistance(uint16 speed, uint16 distance)
-{
-	Time actionTime = m_pOs.time();
-	lastAction = actionTime;
-
-	taskStruct *task = new taskStruct();
-	(*task).id = ROBOT_ACTION_STOP;
-	(*task).time = actionTime;
-	uint32 seconds = distance / speed;
-	uint16 msecs = ((1000 * distance) / speed) - 1000 * seconds;
-	Time distanceTime =  Time(seconds, msecs);
-	m_Robot.driveStraight(speed);
-	m_pOs.add_timeout_in(distanceTime, this, (void*) task);
 }
 
 void RobotLogic::timeout(void *userdata)
@@ -470,232 +369,146 @@ void RobotLogic::timeout(void *userdata)
 
 void RobotLogic::execute(void *userdata)
 {
-	if(userdata!=NULL)
+	//m_pOs.debug("TIMEOUT ROBOTLOGIC");
+	if (activeTask==cSPREAD)
 	{
-		taskStruct *task = (taskStruct*) userdata;
-		//	m_pOs.debug("RobotLogic turn, taskadresse %x", task);
-		//	m_pOs.debug("RobotLogic execute, taskID: %i, time: %i s %i ms", (*task).id, (*task).time.sec(), (*task).time.ms());
-		if((*task).id == ROBOT_ACTION_STOP && (*task).time.sec() == lastAction.sec() && (*task).time.ms() == lastAction.ms())
+		bool bcenterConnected;
+		uint8 linkQuality;
+		uint8 neighborCount = 0;
+		uint8 ownCenterQuality = 0;
+		m_pOs.debug("spread: GetNeighbors ID: %x",m_pOs.id());
+		neighbors = m_neighborhoodMonitor.get_neighbors(m_neighborhoodMonitor.SIGNAL_STRENGTH);
+		neighborsCopy=neighbors;
+		if (neighbors!=NULL)
 		{
-			stop();
+			while (neighbors->addr != 0xFFFF)
+			{
+				linkQuality = neighbors->value;
+				//m_pOs.debug("spread, Nachbar addr: %x  linkQuality: %i", neighbors->addr, linkQuality);
+				neighborCount++;
+				linkQualityArray[neighborCount]=linkQuality;
+				linkQualityID[neighborCount]=neighbors->addr;
+				if (neighbors->addr == centerID) {
+					ownCenterQuality=linkQuality;
+				}
+				*(neighbors++);
+			}
+			isense::free(neighborsCopy);
+		}
+		else
+		{
+			neighborCount=0;
 		}
 
-		delete (taskStruct*) userdata;
-	}
-	else
-	{
-		//m_pOs.debug("TIMEOUT ROBOTLOGIC");
-		if (activeTask==cSPREAD)
+		for (int i=0; i<20; i++)
 		{
-			bool bcenterConnected;
-			uint8 linkQuality;
-			uint8 neighborCount = 0;
-			uint8 ownCenterQuality = 0;
-			m_pOs.debug("spread: GetNeighbors ID: %x",m_pOs.id());
-			neighbors = m_neighborhoodMonitor.get_neighbors(m_neighborhoodMonitor.SIGNAL_STRENGTH);
-			neighborsCopy=neighbors;
-			if (neighbors!=NULL)
+			centerTimeoutCounter[i]++;
+			if (centerTimeoutCounter[i]>maxTimeout)
 			{
-				while (neighbors->addr != 0xFFFF)
+				centerQualityID[i]=BROADCAST;
+				centerQuality[i]=0;
+				centerConnected[i]=0;
+			}
+		}
+
+		if (m_pOs.id()!=centerID)
+		{
+			bcenterConnected=true;
+			uint16 templinkQuality=0;
+			if (ownCenterQuality<centerThreshold)
+			{
+				m_Robot.stop();
+				bcenterConnected=false;
+				for (int i=0; i<20; i++)
 				{
-					linkQuality = neighbors->value;
-					//m_pOs.debug("spread, Nachbar addr: %x  linkQuality: %i", neighbors->addr, linkQuality);
-					neighborCount++;
-					linkQualityArray[neighborCount]=linkQuality;
-					linkQualityID[neighborCount]=neighbors->addr;
-					if (neighbors->addr == centerID) {
-						ownCenterQuality=linkQuality;
+					for (int n=0; n<20; n++)
+					{
+						if (centerQualityID[i]==linkQualityID[n])
+						{
+							templinkQuality=linkQualityArray[n];
+						}
 					}
-					*(neighbors++);
+					if ((centerConnected[i]>0)&&(templinkQuality>centerThreshold))
+					{
+						if ((centerConnected[i]<=hops+1))//||(hops==0))
+							{
+							m_pOs.debug("Connected over ID:%x    Hop:%i",centerQualityID[i],centerConnected[i]);
+							bcenterConnected=true;
+							hops=centerConnected[i];
+							}
+						else
+						{
+							m_pOs.debug("Illegaler Hop ID:%x    Hops:%i",centerQualityID[i],centerConnected[i]);
+							bcenterConnected=false;
+						}
+					}
 				}
-				isense::free(neighborsCopy);
 			}
 			else
 			{
-				neighborCount=0;
+				hops=0;
+				m_pOs.debug("Directly Connected:%i",ownCenterQuality);
 			}
-
-			for (int i=0; i<20; i++)
+			uint16 temp[3];
+			temp[0]=m_pOs.id();
+			if (bcenterConnected)
 			{
-				centerTimeoutCounter[i]++;
-				if (centerTimeoutCounter[i]>maxTimeout)
-				{
-					centerQualityID[i]=BROADCAST;
-					centerQuality[i]=0;
-					centerConnected[i]=0;
-				}
+				temp[1]=hops+1;
 			}
-
-			if (m_pOs.id()!=centerID)
+			else
 			{
-				bcenterConnected=true;
-				uint16 templinkQuality=0;
-				if (ownCenterQuality<centerThreshold)
-				{
-					stop();
-					bcenterConnected=false;
-					for (int i=0; i<20; i++)
-					{
-						for (int n=0; n<20; n++)
-						{
-							if (centerQualityID[i]==linkQualityID[n])
-							{
-								templinkQuality=linkQualityArray[n];
-							}
-						}
-						if ((centerConnected[i]>0)&&(templinkQuality>centerThreshold))
-						{
-							if ((centerConnected[i]<=hops+1))//||(hops==0))
-							{
-								m_pOs.debug("Connected over ID:%x    Hop:%i",centerQualityID[i],centerConnected[i]);
-								bcenterConnected=true;
-								hops=centerConnected[i];
-							}
-							else
-							{
-								m_pOs.debug("Illegaler Hop ID:%x    Hops:%i",centerQualityID[i],centerConnected[i]);
-								bcenterConnected=false;
-							}
-						}
-					}
-				}
-				else
-				{
-					hops=0;
-					m_pOs.debug("Directly Connected:%i",ownCenterQuality);
-				}
-				uint16 temp[3];
-				temp[0]=m_pOs.id();
-				if (bcenterConnected)
-				{
-					temp[1]=hops+1;
-				}
-				else
-				{
-					m_pOs.debug("Not Connected");
-					temp[1]=0;
-				}
-				m_pOs.debug("Hops:%i",hops);
-				temp[2]=ownCenterQuality;
-				m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"cquality",3,temp);
-				//TODO richtige Bezeichnung
-				if (bumpsAndWheeldrop&1)
-				{
-					turn(90,10);
-				}
-				else if (bumpsAndWheeldrop&2)
-				{
-					turn(-90,10);
-				}
-				else if (bcenterConnected)
-				{
-					if (noNeighborsDetected)
-					{
-						uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
-						m_Robot.setScript(turnscript, 8);
-						m_Robot.executeScript();
-						uint16 temp[] = {200,32768};
-						doTask("drive",2,temp);
-						noNeighborsDetected = false;
-					}
-					else
-					{
-						uint16 temp[] = {200,32768};
-						doTask("drive",2,temp);
-					}
-				}
-				//TODO was sinnvolleres als umzudrehen
-				else if ((!bcenterConnected)&&(!noNeighborsDetected))
+				m_pOs.debug("Not Connected");
+				temp[1]=0;
+			}
+			m_pOs.debug("Hops:%i",hops);
+			temp[2]=ownCenterQuality;
+			m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"cquality",3,temp);
+			//TODO richtige Bezeichnung
+			if (bumpsAndWheeldrop&1)
+			{
+				m_Robot.turn(90,10);
+			}
+			else if (bumpsAndWheeldrop&2)
+			{
+				m_Robot.turn(-90,10);
+			}
+			else if (bcenterConnected)
+			{
+				if (noNeighborsDetected)
 				{
 					uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
 					m_Robot.setScript(turnscript, 8);
 					m_Robot.executeScript();
 					uint16 temp[] = {200,32768};
 					doTask("drive",2,temp);
-					noNeighborsDetected = true;
+					noNeighborsDetected = false;
 				}
-			}
-			m_pOs.debug("Ende von spread");
-		}
-		if (activeTask==cGATHER)
-		{
-			m_pOs.debug("cGATHER");
-			uint8 linkQuality;
-			timeoutCounter=((timeoutCounter+1)%10);
-			if (timeoutCounter==0)
-			{
-				neighbors = m_neighborhoodMonitor.get_neighbors(m_neighborhoodMonitor.SIGNAL_STRENGTH);
-				neighborsCopy=neighbors;
-				if (neighbors!=NULL)
+				else
 				{
-					while (neighbors->addr != 0xFFFF)
-					{
-						linkQuality = neighbors->value;
-						//m_pOs.debug("Nachbar addr: %x",neighbors->addr);
-						//m_pOs.debug("gather, linkQuality: %i", linkQuality);
-						if (neighbors->addr == centerID) {
-							centerQuality[centerCounter]=linkQuality;
-							m_pOs.debug("centerQuality[%i]: %i",centerCounter,centerQuality[centerCounter]);
-							centerCounter=(centerCounter+1)%maxCenterCounter;
-						}
-						*(neighbors++);
-					}
-					isense::free(neighborsCopy);
-					//m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"dummytraffic",0,NULL);
-					if (m_pOs.id()!=centerID)
-					{
-						if (centerCounter==0)
-						{
-							oldGatherSum=gatherSum;
-							gatherSum=0;
-							for (int i=0;i<maxCenterCounter;i++)
-							{
-								gatherSum=gatherSum+centerQuality[centerCounter];
-							}
-							if (gatherSum/maxCenterCounter>centerThreshold)
-							{
-								m_Robot.setLeds(0, 0, 0);
-								m_pOs.debug("Center erreicht");
-								stop();
-								activeTask=0;
-							}
-
-							if ((oldGatherSum/maxCenterCounter)>(gatherSum/maxCenterCounter)+5)
-							{
-								m_Robot.setLeds(2, 255, 255);
-								m_pOs.debug("Gather moved away from %i to %i",(oldGatherSum/maxCenterCounter),(gatherSum/maxCenterCounter));
-								uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 90};
-								m_Robot.setScript(turnscript, 8);
-								m_Robot.executeScript();
-								gatherDistance=500;
-								driveDistance(200,32768,gatherDistance);
-								/*uint8 movescript[] = {137, 1, 44, 128, 0, 156, uint8(gatherDistance>>8), uint8(gatherDistance&0xff), 137, 0, 0, 0, 0};
-								m_Robot.setScript(movescript, 13);
-								m_Robot.executeScript();*/
-							}
-							else
-							{
-								m_Robot.setLeds(8, 16, 255);
-								gatherDistance=gatherDistance-10;
-								if (gatherDistance<200)
-								{
-									gatherDistance=200;
-								}
-								uint8 movescript[] = {137, 1, 44, 128, 0, 156, uint8(gatherDistance>>8), uint8(gatherDistance&0xff), 137, 0, 0, 0, 0};
-								m_Robot.setScript(movescript, 13);
-								m_Robot.executeScript();
-							}
-						}
-					}
+					uint16 temp[] = {200,32768};
+					doTask("drive",2,temp);
 				}
 			}
+			//TODO was sinnvolleres als umzudrehen
+			else if ((!bcenterConnected)&&(!noNeighborsDetected))
+			{
+				uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
+				m_Robot.setScript(turnscript, 8);
+				m_Robot.executeScript();
+				uint16 temp[] = {200,32768};
+				doTask("drive",2,temp);
+				noNeighborsDetected = true;
+			}
 		}
-		if (activeTask==cRANDOMDRIVE)
+		m_pOs.debug("Ende von spread");
+	}
+	if (activeTask==cGATHER)
+	{
+		m_pOs.debug("cGATHER");
+		uint8 linkQuality;
+		timeoutCounter=((timeoutCounter+1)%10);
+		if (timeoutCounter==0)
 		{
-			m_pOs.debug("cRANDOMDRIVE");
-			uint8 linkQuality;
-			uint8 neighborCount = 0;
-			m_pOs.debug("randomDrive: GetNeighbors ID: %x",m_pOs.id());
 			neighbors = m_neighborhoodMonitor.get_neighbors(m_neighborhoodMonitor.SIGNAL_STRENGTH);
 			neighborsCopy=neighbors;
 			if (neighbors!=NULL)
@@ -703,35 +516,106 @@ void RobotLogic::execute(void *userdata)
 				while (neighbors->addr != 0xFFFF)
 				{
 					linkQuality = neighbors->value;
-					m_pOs.debug("Nachbar addr: %x",neighbors->addr);
-					m_pOs.debug("randomDrive, linkQuality: %i", linkQuality);
-					if (linkQuality > 50)
-					{
-						neighborCount++;
+					//m_pOs.debug("Nachbar addr: %x",neighbors->addr);
+					//m_pOs.debug("gather, linkQuality: %i", linkQuality);
+					if (neighbors->addr == centerID) {
+						centerQuality[centerCounter]=linkQuality;
+						m_pOs.debug("centerQuality[%i]: %i",centerCounter,centerQuality[centerCounter]);
+						centerCounter=(centerCounter+1)%maxCenterCounter;
 					}
 					*(neighbors++);
 				}
 				isense::free(neighborsCopy);
-			}
-			if (neighborCount==0)
-			{
-				uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
-				m_Robot.setScript(turnscript, 8);
-				m_Robot.executeScript();
-				uint16 temp[] = {200,32768};
-				doTask("drive",2,temp);
-			}
-			if (bumpsAndWheeldrop&1)
-			{
-				uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 90};
-				m_Robot.setScript(turnscript, 8);
-				m_Robot.executeScript();
-				uint16 temp[] = {200,32768};
-				doTask("drive",2,temp);
+				//m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"dummytraffic",0,NULL);
+				if (m_pOs.id()!=centerID)
+				{
+					if (centerCounter==0)
+					{
+						oldGatherSum=gatherSum;
+						gatherSum=0;
+						for (int i=0;i<maxCenterCounter;i++)
+						{
+							gatherSum=gatherSum+centerQuality[centerCounter];
+						}
+						if (gatherSum/maxCenterCounter>centerThreshold)
+						{
+							m_Robot.setLeds(0, 0, 0);
+							m_pOs.debug("Center erreicht");
+							m_Robot.stop();
+							activeTask=0;
+						}
+
+						if ((oldGatherSum/maxCenterCounter)>(gatherSum/maxCenterCounter)+5)
+						{
+							m_Robot.setLeds(2, 255, 255);
+							m_pOs.debug("Gather moved away from %i to %i",(oldGatherSum/maxCenterCounter),(gatherSum/maxCenterCounter));
+							uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 90};
+							m_Robot.setScript(turnscript, 8);
+							m_Robot.executeScript();
+							gatherDistance=500;
+							m_Robot.driveDistance(200,32768,gatherDistance);
+							/*uint8 movescript[] = {137, 1, 44, 128, 0, 156, uint8(gatherDistance>>8), uint8(gatherDistance&0xff), 137, 0, 0, 0, 0};
+								m_Robot.setScript(movescript, 13);
+								m_Robot.executeScript();*/
+						}
+						else
+						{
+							m_Robot.setLeds(8, 16, 255);
+							gatherDistance=gatherDistance-10;
+							if (gatherDistance<200)
+							{
+								gatherDistance=200;
+							}
+							uint8 movescript[] = {137, 1, 44, 128, 0, 156, uint8(gatherDistance>>8), uint8(gatherDistance&0xff), 137, 0, 0, 0, 0};
+							m_Robot.setScript(movescript, 13);
+							m_Robot.executeScript();
+						}
+					}
+				}
 			}
 		}
-		timeoutBool=m_pOs.add_timeout_in(Time(MILLISECONDS/10), this, NULL);
 	}
+	if (activeTask==cRANDOMDRIVE)
+	{
+		m_pOs.debug("cRANDOMDRIVE");
+		uint8 linkQuality;
+		uint8 neighborCount = 0;
+		m_pOs.debug("randomDrive: GetNeighbors ID: %x",m_pOs.id());
+		neighbors = m_neighborhoodMonitor.get_neighbors(m_neighborhoodMonitor.SIGNAL_STRENGTH);
+		neighborsCopy=neighbors;
+		if (neighbors!=NULL)
+		{
+			while (neighbors->addr != 0xFFFF)
+			{
+				linkQuality = neighbors->value;
+				m_pOs.debug("Nachbar addr: %x",neighbors->addr);
+				m_pOs.debug("randomDrive, linkQuality: %i", linkQuality);
+				if (linkQuality > 50)
+				{
+					neighborCount++;
+				}
+				*(neighbors++);
+			}
+			isense::free(neighborsCopy);
+		}
+		if (neighborCount==0)
+		{
+			uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
+			m_Robot.setScript(turnscript, 8);
+			m_Robot.executeScript();
+			uint16 temp[] = {200,32768};
+			doTask("drive",2,temp);
+		}
+		if (bumpsAndWheeldrop&1)
+		{
+			uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 90};
+			m_Robot.setScript(turnscript, 8);
+			m_Robot.executeScript();
+			uint16 temp[] = {200,32768};
+			doTask("drive",2,temp);
+		}
+	}
+	timeoutBool=m_pOs.add_timeout_in(Time(MILLISECONDS/10), this, NULL);
 }
 
 void RobotLogic::onIoModeChanged(uint8 ioMode)

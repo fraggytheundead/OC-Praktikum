@@ -27,16 +27,6 @@
 
 using namespace isense;
 
-// Task IDs:
-#define ROBOT_ACTION_STOP		1
-
-// struct for tasks - contains the ID of the task to be executed
-// and the time at which it was scheduled.
-struct taskStruct {
-	uint8 id;
-	Time time;
-};
-
 class RobotLogic: public RobotHandler,
 public isense::TimeoutHandler,
 public isense::Task
@@ -61,21 +51,14 @@ public:
 	virtual void execute(void *userdata);
 
 protected:
-	PseudoRandomNumberGenerator m_randOmat;
-	void turn(int16 angle, uint8 randomComponent);
-	void turnInfinite(int16 direction);
-	void stop();
 	void spread(uint16 tempID,uint8 tempThreshold);
 	void gather(uint16 tempID,uint8 tempThreshold);
 	void randomDrive();
-	void usedemo(int demoNr);
-	void driveDistance(uint16 speed, uint16 radius, uint16 distance);
-	void driveStraightDistance(uint16 speed, uint16 distance);
+	void miTheme();
 	Communication *m_pCommunication;
 	Os& m_pOs;
 	Robot m_Robot;
 	NeighborhoodMonitor m_neighborhoodMonitor;
-	void miTheme();
 	const static int8 cSPREAD=1;
 	const static int8 cGATHER=2;
 	const static int8 cRANDOMDRIVE=3;
@@ -103,7 +86,6 @@ protected:
 	uint8 centerThreshold;
 	uint8 hops;
 	const static uint8 maxCenterCounter=6;
-	Time lastAction;
 	uint8 bumpsAndWheeldrop;
 
 };
