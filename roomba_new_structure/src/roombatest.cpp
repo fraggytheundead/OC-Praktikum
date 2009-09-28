@@ -84,9 +84,9 @@ void roombatest::timeout(void* userdata) {
 
 void roombatest::handle_uart_packet(uint8 type, uint8* buf, uint8 length) {
 	os_.debug("handle_uart_packet:");
-	for (int i = 0; i < length; ++i) {
+	/*for (int i = 0; i < length; ++i) {
 		os_.debug("  buf[%d] = %d", i, buf[i]);
-	}
+	}*/
 	os_.debug("");
 	flooding.send(length, buf);
 

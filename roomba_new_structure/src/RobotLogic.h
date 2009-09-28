@@ -87,6 +87,7 @@ protected:
 	uint8 hops;
 	const static uint8 maxCenterCounter=6;
 	uint8 bumpsAndWheeldrop;
+	int turnAngle;
 
 };
 

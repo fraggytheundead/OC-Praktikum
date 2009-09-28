@@ -118,7 +118,6 @@ void Robot::initialize(Uart *pUart){
 
 void Robot::initPart2()
 {
-//	m_pOs.debug("init 2");
 	// init UART
 	if(!m_pUart->enabled()) m_pUart->enable();
 	m_pUart->set_baudrate(57600);
@@ -126,9 +125,7 @@ void Robot::initPart2()
 	m_pUart->set_control( 8, 'N', 1 );
 	// set data handler
 	m_pUart->set_uint8_handler(this);
-//	m_pOs.debug("init 2 handler");
 	m_pUart->enable_interrupt(true);
-//	m_pOs.debug("init 2 interrupt");
 	// send roomba start command
 	m_pUart->put( CMD_START );
 	// turn power LED on (green, full intensity)
@@ -182,6 +179,12 @@ void Robot::startDemo(int demo)
  */
 void Robot::drive(uint16 velocity, uint16 radius)
 {
+	drive_notime(velocity, radius);
+	lastAction = m_pOs.time();
+}
+
+void Robot::drive_notime(uint16 velocity, uint16 radius)
+{
 	char buff[5];
 	buff[0] = CMD_DRIVE;
 	buff[1] = 0xff & (velocity >> 8);
@@ -189,11 +192,14 @@ void Robot::drive(uint16 velocity, uint16 radius)
 	buff[3] = 0xff & (radius >> 8);
 	buff[4] = 0xff & radius;
 	m_pUart->write_buffer(buff, 5);
-
-	lastAction = m_pOs.time();
 }
 
 void Robot::driveStraight(uint16 velocity) {
+	driveStraight_notime(velocity);
+	lastAction = m_pOs.time();
+}
+
+void Robot::driveStraight_notime(uint16 velocity) {
 	char buff[5];
 	buff[0] = CMD_DRIVE;
 	buff[1] = 0xff & (velocity >> 8);
@@ -211,6 +217,12 @@ void Robot::driveStraight(uint16 velocity) {
  * @param rightVelocity speed of the right wheel. Valid values are between -500 mm/s and 500 mm/s
  */
 void Robot::driveDirect(uint16 leftVelocity, uint16 rightVelocity)
+{
+	driveDirect_notime(leftVelocity, rightVelocity);
+	lastAction = m_pOs.time();
+}
+
+void Robot::driveDirect_notime(uint16 leftVelocity, uint16 rightVelocity)
 {
 	char buff[5];
 	buff[0] = CMD_DRIVE_DIRECT;
@@ -370,7 +382,7 @@ void Robot::turn(int16 angle, uint8 randomComponent)
 		angle = angle * -1;
 	}
 
-	drive(turnSpeed, turnDirection);
+	drive_notime(turnSpeed, turnDirection);
 
 	taskStruct *task = new taskStruct();
 	(*task).id = ROBOT_ACTION_STOP;
@@ -398,7 +410,7 @@ void Robot::driveDistance(uint16 speed, uint16 radius, uint16 distance)
 //	m_pOs.debug("RobotLogic driveDistance, distance: %i, speed: %i, seconds: %i, msecs: %i", distance, speed, seconds, msecs);
 //	m_pOs.debug("RobotLogic turn, taskID: %i, TaskTime: %i s %i ms", (*task).id, (*task).time.sec(), (*task).time.ms());
 	Time distanceTime =  Time(seconds, msecs);
-	drive(speed, radius);
+	drive_notime(speed, radius);
 	m_pOs.add_timeout_in(distanceTime, this, (void*) task);
 //	m_pOs.debug("RobotLogic turn, taskadresse %x", task);
 }
@@ -414,7 +426,7 @@ void Robot::driveStraightDistance(uint16 speed, uint16 distance)
 	uint32 seconds = distance / speed;
 	uint16 msecs = ((1000 * distance) / speed) - 1000 * seconds;
 	Time distanceTime =  Time(seconds, msecs);
-	driveStraight(speed);
+	driveStraight_notime(speed);
 	m_pOs.add_timeout_in(distanceTime, this, (void*) task);
 }
 
@@ -451,7 +463,6 @@ void Robot::execute(void *userdata)
 	switch((*task).id)
 	{
 	case CREATEROBOT_TASK_PROCESS_DATA:
-//		m_pOs.debug("execute: Process Data");
 		executeSensorData();
 		break;
 	case CREATEROBOT_TASK_INIT:
@@ -470,15 +481,12 @@ void Robot::execute(void *userdata)
 }
 
 void Robot::executeSensorData() {
-//	m_pOs.debug("Execute Sensor Data");
 	processSensorData();
-//	m_pOs.debug("Execute Sensor Data - after processSensorData()");
 	requestPacket(STREAM_ALL);
 	taskStruct *newtask = new taskStruct();
 	(*newtask).id = CREATEROBOT_TASK_PROCESS_DATA;
 	(*newtask).time = m_pOs.time();
 	m_pOs.add_task_in(Time(SENSOR_INTERVAL), this, newtask);
-//	m_pOs.debug("Execute Sensor Data Ende");
 }
 
 void Robot::processSensorData()

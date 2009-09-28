@@ -477,6 +477,7 @@ void RobotLogic::execute(void *userdata)
 				if (noNeighborsDetected)
 				{
 					uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
+					turnAngle=0;
 					m_Robot.setScript(turnscript, 8);
 					m_Robot.executeScript();
 					uint16 temp[] = {200,32768};
@@ -493,6 +494,7 @@ void RobotLogic::execute(void *userdata)
 			else if ((!bcenterConnected)&&(!noNeighborsDetected))
 			{
 				uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
+				turnAngle=0;
 				m_Robot.setScript(turnscript, 8);
 				m_Robot.executeScript();
 				uint16 temp[] = {200,32768};
@@ -632,6 +634,7 @@ void RobotLogic::onCliffStateChanged(PCCLIFFSTATE pState)
 
 void RobotLogic::onMovementStateChanged(PCMOVEMENTSTATE pState)
 {
+	turnAngle=turnAngle+pState->angle;
 }
 
 void RobotLogic::onButtonChanged(uint8 buttons)

@@ -199,8 +199,11 @@ public:
 	void initialize(Uart *pUart);
 	void startDemo(int demo);
 	void drive(uint16 velocity, uint16 radius);
+	void drive_notime(uint16 velocity, uint16 radius);
 	void driveStraight(uint16 velocity);
+	void driveStraight_notime(uint16 velocity);
 	void driveDirect(uint16 leftVelocity, uint16 rightVelocity);
+	void driveDirect_notime(uint16 leftVelocity, uint16 rightVelocity);
 	void setLeds(uint8 ledMask, uint8 powerLedColor, uint8 powerLedIntensity);
 	void setOutputs(uint8 mask);
 	void setLowSideDriver(uint8 mask);
