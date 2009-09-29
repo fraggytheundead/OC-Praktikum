@@ -360,7 +360,7 @@ void Robot::waitForEvent(int event)
 	m_pUart->write_buffer(buff, 2);
 }
 
-void Robot::turn(int16 angle, uint8 randomComponent)
+void Robot::turn(int16 angle, uint8 randomComponent, MovementDoneHandler *pDoneHandler)
 {
 	// 206mm/s == 90° / s
 	uint16 turnSpeed = 206;
@@ -387,6 +387,7 @@ void Robot::turn(int16 angle, uint8 randomComponent)
 	taskStruct *task = new taskStruct();
 	(*task).id = ROBOT_ACTION_STOP;
 	(*task).time = actionTime;
+	(*task).doneHandler = pDoneHandler;
 	uint32 seconds = angle / 90;
 	uint16 msecs = (1000 * angle / 90) - 1000 * seconds;
 	Time turnTime =  Time(seconds, msecs);
@@ -397,7 +398,7 @@ void Robot::turn(int16 angle, uint8 randomComponent)
 //	m_pOs.debug("RobotLogic turn, taskadresse %x", task);
 }
 
-void Robot::driveDistance(uint16 speed, uint16 radius, uint16 distance)
+void Robot::driveDistance(uint16 speed, uint16 radius, uint16 distance, MovementDoneHandler *pDoneHandler)
 {
 	Time actionTime = m_pOs.time();
 	lastAction = actionTime;
@@ -405,6 +406,7 @@ void Robot::driveDistance(uint16 speed, uint16 radius, uint16 distance)
 	taskStruct *task = new taskStruct();
 	(*task).id = ROBOT_ACTION_STOP;
 	(*task).time = actionTime;
+	(*task).doneHandler = pDoneHandler;
 	uint32 seconds = distance / speed;
 	uint16 msecs = ((1000 * distance) / speed) - 1000 * seconds;
 //	m_pOs.debug("RobotLogic driveDistance, distance: %i, speed: %i, seconds: %i, msecs: %i", distance, speed, seconds, msecs);
@@ -415,7 +417,7 @@ void Robot::driveDistance(uint16 speed, uint16 radius, uint16 distance)
 //	m_pOs.debug("RobotLogic turn, taskadresse %x", task);
 }
 
-void Robot::driveStraightDistance(uint16 speed, uint16 distance)
+void Robot::driveStraightDistance(uint16 speed, uint16 distance, MovementDoneHandler *pDoneHandler)
 {
 	Time actionTime = m_pOs.time();
 	lastAction = actionTime;
@@ -423,6 +425,7 @@ void Robot::driveStraightDistance(uint16 speed, uint16 distance)
 	taskStruct *task = new taskStruct();
 	(*task).id = ROBOT_ACTION_STOP;
 	(*task).time = actionTime;
+	(*task).doneHandler = pDoneHandler;
 	uint32 seconds = distance / speed;
 	uint16 msecs = ((1000 * distance) / speed) - 1000 * seconds;
 	Time distanceTime =  Time(seconds, msecs);
@@ -473,6 +476,10 @@ void Robot::execute(void *userdata)
 		if((*task).time.sec() == lastAction.sec() && (*task).time.ms() == lastAction.ms())
 		{
 			stop();
+			if((*task).doneHandler != NULL)
+			{
+				(*task).doneHandler->movementDone();
+			}
 		}
 		break;
 	}
@@ -486,6 +493,7 @@ void Robot::executeSensorData() {
 	taskStruct *newtask = new taskStruct();
 	(*newtask).id = CREATEROBOT_TASK_PROCESS_DATA;
 	(*newtask).time = m_pOs.time();
+	(*newtask).doneHandler = NULL;
 	m_pOs.add_task_in(Time(SENSOR_INTERVAL), this, newtask);
 }
 

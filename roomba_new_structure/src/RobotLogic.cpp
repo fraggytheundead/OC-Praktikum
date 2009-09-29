@@ -72,7 +72,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 #ifdef DEBUG_DOTASK
 			m_pOs.debug("doTask: turnParam0:%i  Param1:%i",parameters[0],parameters[1]);
 #endif
-			m_Robot.turn((int16) parameters[0], (uint8) (parameters[1] & 0xff));
+			m_Robot.turn((int16) parameters[0], (uint8) (parameters[1] & 0xff), NULL);
 		}
 	}
 
@@ -105,7 +105,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 #ifdef DEBUG_DOTASK
 			m_pOs.debug("doTask: drveDist  Param0: %i  Param1: %i Param2: %i",parameters[0],parameters[1],parameters[2]);
 #endif
-			m_Robot.driveDistance((uint16) parameters[0], (uint16) parameters[1], (uint16) parameters[2]);
+			m_Robot.driveDistance((uint16) parameters[0], (uint16) parameters[1], (uint16) parameters[2], NULL);
 
 		}
 	}
@@ -191,7 +191,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		if(paramLength == 1)
 		{
 			activeTask=-1;
-			m_Robot.driveStraightDistance(parameters[0], parameters[1]);
+			m_Robot.driveStraightDistance(parameters[0], parameters[1], NULL);
 		}
 	}
 
@@ -327,7 +327,7 @@ void RobotLogic::randomDrive()
 		m_pOs.debug("randomDrive, linkQuality: %i", linkQuality);
 		*(neighbors++);
 	}
-	m_Robot.turn(1,180);
+	m_Robot.turn(1,180, this);
 	uint16 temp[] = {200,32768};
 	doTask("drive",2,temp);
 }
@@ -466,11 +466,11 @@ void RobotLogic::execute(void *userdata)
 			//TODO richtige Bezeichnung
 			if (bumpsAndWheeldrop&1)
 			{
-				m_Robot.turn(90,10);
+				m_Robot.turn(90,10, this);
 			}
 			else if (bumpsAndWheeldrop&2)
 			{
-				m_Robot.turn(-90,10);
+				m_Robot.turn(-90,10, this);
 			}
 			else if (bcenterConnected)
 			{
@@ -555,7 +555,7 @@ void RobotLogic::execute(void *userdata)
 							m_Robot.setScript(turnscript, 8);
 							m_Robot.executeScript();
 							gatherDistance=500;
-							m_Robot.driveDistance(200,32768,gatherDistance);
+							m_Robot.driveDistance(200,32768,gatherDistance, this);
 							/*uint8 movescript[] = {137, 1, 44, 128, 0, 156, uint8(gatherDistance>>8), uint8(gatherDistance&0xff), 137, 0, 0, 0, 0};
 								m_Robot.setScript(movescript, 13);
 								m_Robot.executeScript();*/
@@ -667,5 +667,10 @@ void RobotLogic::onSongStateChanged(uint8 songNumber, uint8 songPlaying)
 			activeTask=-1;
 		}
 	}
+
+}
+
+void RobotLogic::movementDone()
+{
 
 }

@@ -164,12 +164,20 @@ public:
 #define SENSOR_BUFFER_SIZE	52	// in bytes
 #define SENSOR_INTERVAL		66	// in milliseconds (equals approx. 15 times per second)
 
+class MovementDoneHandler
+{
+public:
+	virtual void movementDone();
+};
+
 // struct for tasks - contains the ID of the task to be executed
 // and the time at which it was scheduled.
 struct taskStruct {
 	int id;
 	Time time;
+	MovementDoneHandler *doneHandler;
 };
+
 
 class Robot: public Uint8DataHandler,
 	public isense::TimeoutHandler,
@@ -221,11 +229,11 @@ public:
 	void waitForEvent(int event);
 	void changeModeSafe();
 	void changeModeFull();
-	void turn(int16 angle, uint8 randomComponent);
+	void turn(int16 angle, uint8 randomComponent, MovementDoneHandler *pDoneHandler);
 	void turnInfinite(int16 direction);
 	void stop();
-	void driveDistance(uint16 speed, uint16 radius, uint16 distance);
-	void driveStraightDistance(uint16 speed, uint16 distance);
+	void driveDistance(uint16 speed, uint16 radius, uint16 distance, MovementDoneHandler *pDoneHandler);
+	void driveStraightDistance(uint16 speed, uint16 distance, MovementDoneHandler *pDoneHandler);
 
 	virtual void handle_uint8_data(uint8 data);
 	///From isense::TimeoutHandler

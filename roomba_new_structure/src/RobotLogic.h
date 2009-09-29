@@ -29,7 +29,8 @@ using namespace isense;
 
 class RobotLogic: public RobotHandler,
 public isense::TimeoutHandler,
-public isense::Task
+public isense::Task,
+public MovementDoneHandler
 {
 public:
 	RobotLogic(Os& os, Uart *pUart, Communication *pCommunication);
@@ -49,6 +50,9 @@ public:
 	virtual void timeout(void *userdata);
 	///From isense::Task
 	virtual void execute(void *userdata);
+
+	// From MovementDoneHandler
+	virtual void movementDone();
 
 protected:
 	void spread(uint16 tempID,uint8 tempThreshold);
