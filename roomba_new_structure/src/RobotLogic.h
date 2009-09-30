@@ -89,9 +89,15 @@ protected:
 	uint8 centerCounter;
 	uint8 centerThreshold;
 	uint8 hops;
-	const static uint8 maxCenterCounter=6;
+	const static uint8 maxCenterCounter=7;
 	uint8 bumpsAndWheeldrop;
 	int turnAngle;
+	int swarmState;
+	const static int cNONE=0;
+	const static int cTURNWAIT=1;
+	const static int cBUMPSWAIT=2;
+	const static int cGATHERDISTANCEWAIT=3;
+	const static int cGATHERTURNWAIT=4;
 
 };
 

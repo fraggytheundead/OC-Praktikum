@@ -138,6 +138,13 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	{
 		//m_pCommunication->sendMessage(0,"pon",0,NULL);
 		m_pOs.debug("pon erhalten in ID: %i",m_pOs.id());
+		if (activeTask==cGATHER)
+		{
+			if ((swarmState!=cGATHERDISTANCEWAIT)&&(swarmState!=cGATHERTURNWAIT))
+			{
+				m_pOs.add_task(this, NULL);
+			}
+		}
 	}
 
 	if (strcmp(taskName, "cquality") == 0)
@@ -160,6 +167,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 				centerQualityID[i]=tempID;
 				centerConnected[i]=parameters[1];
 				centerQuality[i]=parameters[2];
+				centerTimeoutCounter[i]=0;
 				//m_pOs.debug("Centerquality[%i] von %x ist %i %i ",i,tempID,parameters[1],parameters[2]);
 				break;
 			}
@@ -302,6 +310,7 @@ void RobotLogic::gather(uint16 tempID,uint8 tempThreshold)
 	activeTask = cGATHER;
 	centerID = tempID;
 	centerThreshold=tempThreshold;
+	gatherDistance=1000;
 	for (int i = 0; i<20; i++)
 	{
 		centerQualityID[i] = BROADCAST;
@@ -310,8 +319,10 @@ void RobotLogic::gather(uint16 tempID,uint8 tempThreshold)
 	centerCounter=0;
 	if (centerID!=m_pOs.id())
 	{
-		uint16 temp[] = {200,32768};
-		doTask("drive",2,temp);
+		//uint16 temp[] = {200,32768};
+		//doTask("drive",2,temp);
+		//m_Robot.driveStraightDistance(200,500,this);
+		//swarmState=cGATHERDISTANCEWAIT;
 	}
 }
 
@@ -362,13 +373,45 @@ void RobotLogic::timeout(void *userdata)
 		taskBool=m_pOs.add_task(this, NULL);
 		//m_pOs.debug("ROBOTLOGIC taskbool:%i",taskBool);
 		//m_pOs.debug("ROBOTLOGIC timeoutbool:%i",timeoutBool);
-		timeoutCounter++;
+		//timeoutCounter++;
 		//m_pOs.debug("TimeoutCounter:%i",timeoutCounter);
 	}
 }
 
 void RobotLogic::execute(void *userdata)
 {
+
+	if (activeTask!=-1) {
+		if (bumpsAndWheeldrop&1)
+		{
+			m_Robot.turn(90,10,this);
+			swarmState=cBUMPSWAIT;
+			return;
+		}
+		else if (bumpsAndWheeldrop&2)
+		{
+			m_Robot.turn(-90,10,this);
+			swarmState=cBUMPSWAIT;
+			return;
+		}
+
+		if (swarmState==cTURNWAIT)
+		{
+			uint16 temp[] = {200,32768};
+			doTask("drive",2,temp);
+			swarmState=cNONE;
+		}
+		if (swarmState==cGATHERTURNWAIT)
+		{
+			m_Robot.driveStraightDistance(200,gatherDistance, this);
+			swarmState=cNONE;
+		}
+		if ((swarmState==cBUMPSWAIT)||(swarmState==cGATHERDISTANCEWAIT))
+		{
+			swarmState=cNONE;
+		}
+	}
+
 	//m_pOs.debug("TIMEOUT ROBOTLOGIC");
 	if (activeTask==cSPREAD)
 	{
@@ -411,7 +454,7 @@ void RobotLogic::execute(void *userdata)
 			}
 		}
 
-		if (m_pOs.id()!=centerID)
+		if ((m_pOs.id()!=centerID)&&(neighborCount>0))
 		{
 			bcenterConnected=true;
 			uint16 templinkQuality=0;
@@ -464,25 +507,15 @@ void RobotLogic::execute(void *userdata)
 			temp[2]=ownCenterQuality;
 			m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"cquality",3,temp);
 			//TODO richtige Bezeichnung
-			if (bumpsAndWheeldrop&1)
-			{
-				m_Robot.turn(90,10, this);
-			}
-			else if (bumpsAndWheeldrop&2)
-			{
-				m_Robot.turn(-90,10, this);
-			}
-			else if (bcenterConnected)
+			if (bcenterConnected)
 			{
 				if (noNeighborsDetected)
 				{
-					uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
-					turnAngle=0;
-					m_Robot.setScript(turnscript, 8);
-					m_Robot.executeScript();
-					uint16 temp[] = {200,32768};
-					doTask("drive",2,temp);
-					noNeighborsDetected = false;
+					m_Robot.stop();
+					//m_Robot.turn(180,0,this);
+					//swarmState=cTURNWAIT;
+					//noNeighborsDetected = false;
+					//return
 				}
 				else
 				{
@@ -493,85 +526,92 @@ void RobotLogic::execute(void *userdata)
 			//TODO was sinnvolleres als umzudrehen
 			else if ((!bcenterConnected)&&(!noNeighborsDetected))
 			{
-				uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
-				turnAngle=0;
+				/*uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 180};
 				m_Robot.setScript(turnscript, 8);
-				m_Robot.executeScript();
-				uint16 temp[] = {200,32768};
-				doTask("drive",2,temp);
+				m_Robot.executeScript();*/
+				m_Robot.turn(180,0,this);
+				swarmState=cTURNWAIT;
 				noNeighborsDetected = true;
+				return;
+				/*uint16 temp[] = {200,32768};
+				doTask("drive",2,temp);*/
 			}
 		}
 		m_pOs.debug("Ende von spread");
 	}
 	if (activeTask==cGATHER)
 	{
-		m_pOs.debug("cGATHER");
 		uint8 linkQuality;
-		timeoutCounter=((timeoutCounter+1)%10);
-		if (timeoutCounter==0)
+		m_pOs.debug("cGATHER");
+		neighbors = m_neighborhoodMonitor.get_neighbors(m_neighborhoodMonitor.SIGNAL_STRENGTH);
+		neighborsCopy=neighbors;
+		if (neighbors!=NULL)
 		{
-			neighbors = m_neighborhoodMonitor.get_neighbors(m_neighborhoodMonitor.SIGNAL_STRENGTH);
-			neighborsCopy=neighbors;
-			if (neighbors!=NULL)
+			while (neighbors->addr != 0xFFFF)
 			{
-				while (neighbors->addr != 0xFFFF)
-				{
-					linkQuality = neighbors->value;
-					//m_pOs.debug("Nachbar addr: %x",neighbors->addr);
-					//m_pOs.debug("gather, linkQuality: %i", linkQuality);
-					if (neighbors->addr == centerID) {
-						centerQuality[centerCounter]=linkQuality;
-						m_pOs.debug("centerQuality[%i]: %i",centerCounter,centerQuality[centerCounter]);
-						centerCounter=(centerCounter+1)%maxCenterCounter;
-					}
-					*(neighbors++);
+				linkQuality = neighbors->value;
+				m_pOs.debug("gather, Nachbar addr: %x   linkQuality: %i",neighbors->addr, linkQuality);
+				if (neighbors->addr == centerID) {
+					centerQuality[centerCounter]=linkQuality;
+					m_pOs.debug("centerQuality[%i]: %i",centerCounter,centerQuality[centerCounter]);
+					centerCounter=(centerCounter+1)%maxCenterCounter;
 				}
-				isense::free(neighborsCopy);
-				//m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"dummytraffic",0,NULL);
-				if (m_pOs.id()!=centerID)
+				*(neighbors++);
+			}
+			isense::free(neighborsCopy);
+			//m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"dummytraffic",0,NULL);
+			if (m_pOs.id()!=centerID)
+			{
+				if (centerCounter==0)
 				{
-					if (centerCounter==0)
+					oldGatherSum=gatherSum;
+					gatherSum=0;
+					for (int i=0;i<maxCenterCounter;i++)
 					{
-						oldGatherSum=gatherSum;
-						gatherSum=0;
-						for (int i=0;i<maxCenterCounter;i++)
-						{
-							gatherSum=gatherSum+centerQuality[centerCounter];
-						}
-						if (gatherSum/maxCenterCounter>centerThreshold)
-						{
-							m_Robot.setLeds(0, 0, 0);
-							m_pOs.debug("Center erreicht");
-							m_Robot.stop();
-							activeTask=0;
-						}
-
-						if ((oldGatherSum/maxCenterCounter)>(gatherSum/maxCenterCounter)+5)
-						{
-							m_Robot.setLeds(2, 255, 255);
-							m_pOs.debug("Gather moved away from %i to %i",(oldGatherSum/maxCenterCounter),(gatherSum/maxCenterCounter));
-							uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 90};
+						gatherSum=gatherSum+centerQuality[centerCounter];
+					}
+					if (gatherSum/maxCenterCounter>centerThreshold)
+					{
+						//m_Robot.setLeds(0, 0, 0);
+						m_pOs.debug("Center erreicht");
+						m_Robot.stop();
+						activeTask=0;
+						swarmState=cNONE;
+						uint8 song1[]={88,8,1,8,88,8,91,8};
+						m_Robot.setSong(0,song1,4);
+						m_Robot.playSong(0);
+					}
+					else if ((oldGatherSum/maxCenterCounter)>(gatherSum/maxCenterCounter)+5)
+					{
+						//m_Robot.setLeds(2, 255, 255);
+						m_pOs.debug("Gather moved away from %i to %i",(oldGatherSum/maxCenterCounter),(gatherSum/maxCenterCounter));
+						/*uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 90};
 							m_Robot.setScript(turnscript, 8);
-							m_Robot.executeScript();
-							gatherDistance=500;
-							m_Robot.driveDistance(200,32768,gatherDistance, this);
-							/*uint8 movescript[] = {137, 1, 44, 128, 0, 156, uint8(gatherDistance>>8), uint8(gatherDistance&0xff), 137, 0, 0, 0, 0};
+							m_Robot.executeScript();*/
+						m_Robot.turn(90,0,this);
+						swarmState=cGATHERTURNWAIT;
+						gatherDistance=1000;
+						return;
+						//m_Robot.driveDistance(200,32768,gatherDistance, this);
+						/*uint8 movescript[] = {137, 1, 44, 128, 0, 156, uint8(gatherDistance>>8), uint8(gatherDistance&0xff), 137, 0, 0, 0, 0};
 								m_Robot.setScript(movescript, 13);
 								m_Robot.executeScript();*/
-						}
-						else
+					}
+					else
+					{
+						//m_Robot.setLeds(8, 16, 255);
+						gatherDistance=gatherDistance-100;
+						if (gatherDistance<200)
 						{
-							m_Robot.setLeds(8, 16, 255);
-							gatherDistance=gatherDistance-10;
-							if (gatherDistance<200)
-							{
-								gatherDistance=200;
-							}
-							uint8 movescript[] = {137, 1, 44, 128, 0, 156, uint8(gatherDistance>>8), uint8(gatherDistance&0xff), 137, 0, 0, 0, 0};
-							m_Robot.setScript(movescript, 13);
-							m_Robot.executeScript();
+							gatherDistance=200;
 						}
+						m_pOs.debug("Gather fahr weiter GatherDistance: %i",gatherDistance);
+						/*uint8 movescript[] = {137, 1, 44, 128, 0, 156, uint8(gatherDistance>>8), uint8(gatherDistance&0xff), 137, 0, 0, 0, 0};
+							m_Robot.setScript(movescript, 13);
+							m_Robot.executeScript();*/
+						m_Robot.driveStraightDistance(200,gatherDistance,this);
+						swarmState=cGATHERDISTANCEWAIT;
+						return;
 					}
 				}
 			}
@@ -608,16 +648,11 @@ void RobotLogic::execute(void *userdata)
 			uint16 temp[] = {200,32768};
 			doTask("drive",2,temp);
 		}
-		if (bumpsAndWheeldrop&1)
-		{
-			uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 90};
-			m_Robot.setScript(turnscript, 8);
-			m_Robot.executeScript();
-			uint16 temp[] = {200,32768};
-			doTask("drive",2,temp);
-		}
 	}
-	timeoutBool=m_pOs.add_timeout_in(Time(MILLISECONDS/10), this, NULL);
+	if (activeTask!=cGATHER)
+	{
+		timeoutBool=m_pOs.add_timeout_in(Time(MILLISECONDS/10), this, NULL);
+	}
 }
 
 void RobotLogic::onIoModeChanged(uint8 ioMode)
@@ -650,6 +685,7 @@ void RobotLogic::onBumpAndWheelDrop(uint8 bumpsAndWheelDrop)
 {
 	m_pOs.debug("Bump and wheel drop: %d", bumpsAndWheelDrop);
 	bumpsAndWheeldrop = bumpsAndWheelDrop;
+	m_pOs.add_task(this, NULL);
 }
 
 void RobotLogic::onSongStateChanged(uint8 songNumber, uint8 songPlaying)
@@ -672,5 +708,9 @@ void RobotLogic::onSongStateChanged(uint8 songNumber, uint8 songPlaying)
 
 void RobotLogic::movementDone()
 {
-
+	m_pOs.debug("MovementDone in %x",m_pOs.id());
+	if ((swarmState==cTURNWAIT)||(swarmState==cBUMPSWAIT)||(swarmState==cGATHERTURNWAIT)||(swarmState==cGATHERDISTANCEWAIT))
+	{
+		m_pOs.add_task(this, NULL);
+	}
 }

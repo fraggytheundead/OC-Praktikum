@@ -207,8 +207,6 @@ void Robot::driveStraight_notime(uint16 velocity) {
 	buff[3] = 0x80;
 	buff[4] = 0x00;
 	m_pUart->write_buffer(buff, 5);
-
-	lastAction = m_pOs.time();
 }
 
 /**
@@ -231,8 +229,6 @@ void Robot::driveDirect_notime(uint16 leftVelocity, uint16 rightVelocity)
 	buff[3] = 0xff & (leftVelocity >> 8);
 	buff[4] = 0xff & leftVelocity;
 	m_pUart->write_buffer(buff, 5);
-
-	lastAction = m_pOs.time();
 }
 
 void Robot::setLeds(uint8 ledMask, uint8 powerLedColor, uint8 powerLedIntensity)
@@ -425,7 +421,15 @@ void Robot::driveStraightDistance(uint16 speed, uint16 distance, MovementDoneHan
 	taskStruct *task = new taskStruct();
 	(*task).id = ROBOT_ACTION_STOP;
 	(*task).time = actionTime;
-	(*task).doneHandler = pDoneHandler;
+//	if (pDoneHandler != NULL)
+//	{
+//		m_pOs.debug("pDoneHandler ungleich NULL");
+//	}
+	task->doneHandler = pDoneHandler;
+//	if (task->doneHandler != NULL)
+//	{
+//		m_pOs.debug("task doneHandler ungleich NULL");
+//	}
 	uint32 seconds = distance / speed;
 	uint16 msecs = ((1000 * distance) / speed) - 1000 * seconds;
 	Time distanceTime =  Time(seconds, msecs);
@@ -440,9 +444,8 @@ void Robot::turnInfinite(int16 turnVelocity)
 
 void Robot::stop()
 {
-	lastAction = m_pOs.time();
 //	m_pOs.debug("RobotLogic stop");
-	driveDirect(0,0);
+	driveDirect_notime(0,0);
 }
 
 void Robot::handle_uint8_data(uint8 data)
@@ -473,12 +476,17 @@ void Robot::execute(void *userdata)
 		initPart2();
 		break;
 	case ROBOT_ACTION_STOP:
+//		m_pOs.debug("movementDone Handler in Robot");
+//		m_pOs.debug("Time.sec: %i==%i   time.ms: %i==%i",(*task).time.sec(),lastAction.sec(),(*task).time.ms(),lastAction.ms());
 		if((*task).time.sec() == lastAction.sec() && (*task).time.ms() == lastAction.ms())
 		{
+//			m_pOs.debug("Stop wird ausgeführt");
 			stop();
-			if((*task).doneHandler != NULL)
+//			m_pOs.debug("MovementDoneHandler: %x", task->doneHandler);
+			if(task->doneHandler != NULL)
 			{
-				(*task).doneHandler->movementDone();
+//				m_pOs.debug("doneHandler ungleich NULL");
+				task->doneHandler->movementDone();
 			}
 		}
 		break;
