@@ -74,6 +74,7 @@ protected:
 	bool taskBool;
 	bool timeoutBool;
 	bool noNeighborsDetected;
+	bool centerFound;
 	NeighborhoodMonitor::neighbor* neighbors;
 	NeighborhoodMonitor::neighbor* neighborsCopy;
 	uint16 linkQualityID[20];

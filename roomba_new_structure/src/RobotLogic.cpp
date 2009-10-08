@@ -303,6 +303,7 @@ void RobotLogic::spread(uint16 tempID,uint8 tempThreshold)
 		centerQuality[i] = 0;
 		centerConnected[i] = 0;
 	}
+	centerFound=false;
 }
 
 void RobotLogic::gather(uint16 tempID,uint8 tempThreshold)
@@ -397,8 +398,9 @@ void RobotLogic::execute(void *userdata)
 
 		if (swarmState==cTURNWAIT)
 		{
-			uint16 temp[] = {200,32768};
-			doTask("drive",2,temp);
+			//uint16 temp[] = {200,32768};
+			//doTask("drive",2,temp);
+			m_Robot.driveStraight(200);
 			swarmState=cNONE;
 		}
 		if (swarmState==cGATHERTURNWAIT)
@@ -431,7 +433,8 @@ void RobotLogic::execute(void *userdata)
 				neighborCount++;
 				linkQualityArray[neighborCount]=linkQuality;
 				linkQualityID[neighborCount]=neighbors->addr;
-				if (neighbors->addr == centerID) {
+				if (neighbors->addr == centerID)
+				{
 					ownCenterQuality=linkQuality;
 				}
 				*(neighbors++);
@@ -457,10 +460,10 @@ void RobotLogic::execute(void *userdata)
 		if ((m_pOs.id()!=centerID)&&(neighborCount>0))
 		{
 			bcenterConnected=true;
-			uint16 templinkQuality=0;
+//			uint16 templinkQuality=0;
 			if (ownCenterQuality<centerThreshold)
 			{
-				m_Robot.stop();
+				/*m_Robot.stop();
 				bcenterConnected=false;
 				for (int i=0; i<20; i++)
 				{
@@ -474,36 +477,59 @@ void RobotLogic::execute(void *userdata)
 					if ((centerConnected[i]>0)&&(templinkQuality>centerThreshold))
 					{
 						if ((centerConnected[i]<=hops+1))//||(hops==0))
-							{
+						{
 							m_pOs.debug("Connected over ID:%x    Hop:%i",centerQualityID[i],centerConnected[i]);
 							bcenterConnected=true;
 							hops=centerConnected[i];
-							}
+						}
 						else
 						{
 							m_pOs.debug("Illegaler Hop ID:%x    Hops:%i",centerQualityID[i],centerConnected[i]);
 							bcenterConnected=false;
 						}
 					}
+				}*/
+				bcenterConnected=false;
+				for (int i=0; i<20; i++)
+				{
+					if ((centerConnected[i]==1)&&(centerQualityID[i]<m_pOs.id()))
+					{
+						for (int n=0; n<20; n++)
+						{
+							if (linkQualityID[n]==centerQualityID[i])
+							{
+								if (linkQualityArray[n]>=centerThreshold)
+								{
+									bcenterConnected=true;
+									break;
+								}
+							}
+						}
+					}
+					if (bcenterConnected)
+					{
+						break;
+					}
 				}
 			}
 			else
 			{
-				hops=0;
+				bcenterConnected=true;
+				//hops=0;
 				m_pOs.debug("Directly Connected:%i",ownCenterQuality);
 			}
 			uint16 temp[3];
 			temp[0]=m_pOs.id();
-			if (bcenterConnected)
+			if ((bcenterConnected)||(centerFound))
 			{
-				temp[1]=hops+1;
+				temp[1]=1;
 			}
 			else
 			{
 				m_pOs.debug("Not Connected");
 				temp[1]=0;
 			}
-			m_pOs.debug("Hops:%i",hops);
+			//m_pOs.debug("Hops:%i",hops);
 			temp[2]=ownCenterQuality;
 			m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"cquality",3,temp);
 			//TODO richtige Bezeichnung
@@ -511,7 +537,11 @@ void RobotLogic::execute(void *userdata)
 			{
 				if (noNeighborsDetected)
 				{
-					m_Robot.stop();
+					if (ownCenterQuality>centerThreshold+5)
+					{
+						centerFound=true;
+						m_Robot.stop();
+					}
 					//m_Robot.turn(180,0,this);
 					//swarmState=cTURNWAIT;
 					//noNeighborsDetected = false;
@@ -519,8 +549,7 @@ void RobotLogic::execute(void *userdata)
 				}
 				else
 				{
-					uint16 temp[] = {200,32768};
-					doTask("drive",2,temp);
+					m_Robot.driveStraight(200);
 				}
 			}
 			//TODO was sinnvolleres als umzudrehen
@@ -551,7 +580,8 @@ void RobotLogic::execute(void *userdata)
 			{
 				linkQuality = neighbors->value;
 				m_pOs.debug("gather, Nachbar addr: %x   linkQuality: %i",neighbors->addr, linkQuality);
-				if (neighbors->addr == centerID) {
+				if (neighbors->addr == centerID)
+				{
 					centerQuality[centerCounter]=linkQuality;
 					m_pOs.debug("centerQuality[%i]: %i",centerCounter,centerQuality[centerCounter]);
 					centerCounter=(centerCounter+1)%maxCenterCounter;
