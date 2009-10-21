@@ -90,12 +90,7 @@ Robot::~Robot()
 
 }
 
-/**
- * initializes the UART and starts communication between iSense and the Create Robot.
- * Puts the Robot in SAFE mode
- * @param pUart a pointer to the UART that is to be used
- * @return true if the initialization was successful
- */
+
 void Robot::initialize(Uart *pUart){
 	m_pOs.debug("CreateRobot init");
 	m_pUart = pUart;
@@ -155,10 +150,7 @@ void Robot::changeModeFull()
 }
 
 
-/**
- * Starts a demo on the Create Robot
- * @param demo the demo to be started
- */
+
 void Robot::startDemo(int demo)
 {
 	char buff[2];
@@ -167,16 +159,6 @@ void Robot::startDemo(int demo)
 	m_pUart->write_buffer(buff, 2);
 }
 
-/**
- * Makes the Create Robot drive
- * @param velocity the velocity in mm/s. Valid values are between -500 mm/s and 500 mm/s
- * @param radius the radius of the turn. Valid values are between -2000 mm and 2000 mm.
- *		Positive values mean turning to the left, positive values to the right.
- */
-/* TODO: evtl herausfinden, was passiert, wenn man hier
- * ungültige Werte verwendet (zB velocity > 500) und ggf abfangen
- * angeblich fängt der Roboter das von selbst ab
- */
 void Robot::drive(uint16 velocity, uint16 radius)
 {
 	drive_notime(velocity, radius);
@@ -209,11 +191,7 @@ void Robot::driveStraight_notime(uint16 velocity) {
 	m_pUart->write_buffer(buff, 5);
 }
 
-/**
- * Makes the Create Robot drive, turning the two wheels at the given speeds
- * @param leftVelocity speed of the left wheel. Valid values are between -500 mm/s and 500 mm/s
- * @param rightVelocity speed of the right wheel. Valid values are between -500 mm/s and 500 mm/s
- */
+
 void Robot::driveDirect(uint16 leftVelocity, uint16 rightVelocity)
 {
 	driveDirect_notime(leftVelocity, rightVelocity);
@@ -233,7 +211,6 @@ void Robot::driveDirect_notime(uint16 leftVelocity, uint16 rightVelocity)
 
 void Robot::setLeds(uint8 ledMask, uint8 powerLedColor, uint8 powerLedIntensity)
 {
-//	JennicOs::os_pointer()->debug("setLeds, ledMask:%i, LedColor: %i, LedIntensity: %i", ledMask, powerLedColor, powerLedIntensity);
 	char buff[4];
 	buff[0] = CMD_SET_LEDS;
 	buff[1] = ledMask;
@@ -276,11 +253,11 @@ void Robot::playSong(int slot)
 	m_pUart->write_buffer(buff, 2);
 }
 
-void Robot::requestPacket(int type)
+void Robot::requestPacket(int packetId)
 {
 	char buff[2];
 	buff[0] = CMD_REQUEST_PACKET;
-	buff[1] = (char) type;
+	buff[1] = (char) packetId;
 	m_pUart->write_buffer(buff, 2);
 }
 
@@ -314,12 +291,6 @@ void Robot::setScript(uint8 *pScript, uint8 len)
 void Robot::executeScript()
 {
 	m_pUart->put( CMD_EXECUTE_SCRIPT );
-}
-
-// TODO
-uint8 Robot::getScript(uint8 *pScript, uint8 len)
-{
-	return 0;
 }
 
 void Robot::wait(uint8 time)
@@ -388,10 +359,7 @@ void Robot::turn(int16 angle, uint8 randomComponent, MovementDoneHandler *pDoneH
 	uint16 msecs = (1000 * angle / 90) - 1000 * seconds;
 	Time turnTime =  Time(seconds, msecs);
 
-//	m_pOs.debug("RobotLogic turn, angle: %i, seconds: %i, msecs: %i", angle, seconds, msecs);
-//	m_pOs.debug("RobotLogic turn, taskID: %i, TaskTime: %i s %i ms", (*task).id, (*task).time.sec(), (*task).time.ms());
 	m_pOs.add_timeout_in(turnTime, this,(void*) task);
-//	m_pOs.debug("RobotLogic turn, taskadresse %x", task);
 }
 
 void Robot::driveDistance(uint16 speed, uint16 radius, uint16 distance, MovementDoneHandler *pDoneHandler)
@@ -405,12 +373,9 @@ void Robot::driveDistance(uint16 speed, uint16 radius, uint16 distance, Movement
 	(*task).doneHandler = pDoneHandler;
 	uint32 seconds = distance / speed;
 	uint16 msecs = ((1000 * distance) / speed) - 1000 * seconds;
-//	m_pOs.debug("RobotLogic driveDistance, distance: %i, speed: %i, seconds: %i, msecs: %i", distance, speed, seconds, msecs);
-//	m_pOs.debug("RobotLogic turn, taskID: %i, TaskTime: %i s %i ms", (*task).id, (*task).time.sec(), (*task).time.ms());
 	Time distanceTime =  Time(seconds, msecs);
 	drive_notime(speed, radius);
 	m_pOs.add_timeout_in(distanceTime, this, (void*) task);
-//	m_pOs.debug("RobotLogic turn, taskadresse %x", task);
 }
 
 void Robot::driveStraightDistance(uint16 speed, uint16 distance, MovementDoneHandler *pDoneHandler)
@@ -421,15 +386,7 @@ void Robot::driveStraightDistance(uint16 speed, uint16 distance, MovementDoneHan
 	taskStruct *task = new taskStruct();
 	(*task).id = ROBOT_ACTION_STOP;
 	(*task).time = actionTime;
-//	if (pDoneHandler != NULL)
-//	{
-//		m_pOs.debug("pDoneHandler ungleich NULL");
-//	}
 	task->doneHandler = pDoneHandler;
-//	if (task->doneHandler != NULL)
-//	{
-//		m_pOs.debug("task doneHandler ungleich NULL");
-//	}
 	uint32 seconds = distance / speed;
 	uint16 msecs = ((1000 * distance) / speed) - 1000 * seconds;
 	Time distanceTime =  Time(seconds, msecs);
@@ -439,12 +396,11 @@ void Robot::driveStraightDistance(uint16 speed, uint16 distance, MovementDoneHan
 
 void Robot::turnInfinite(int16 turnVelocity)
 {
-	driveDirect(turnVelocity,-turnVelocity);
+	driveDirect(-turnVelocity,turnVelocity);
 }
 
 void Robot::stop()
 {
-//	m_pOs.debug("RobotLogic stop");
 	driveDirect_notime(0,0);
 }
 
@@ -458,7 +414,6 @@ void Robot::handle_uint8_data(uint8 data)
 
 void Robot::timeout(void *userdata)
 {
-//	m_pOs.debug("CreateRobot timeout, ID: %i", *(uint8*) userdata);
 	m_pOs.add_task(this, userdata);
 }
 

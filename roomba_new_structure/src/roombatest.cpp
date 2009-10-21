@@ -9,15 +9,9 @@
 #include "roombatest.h"
 
 //----------------------------------------------------------------------------
-/**
- */
-
-
-//----------------------------------------------------------------------------
 roombatest::roombatest(isense::Os& os) :
 	isense::Application(os),
 	flooding(os),
-//	m_skeleton(os),
 	m_comModule(os),
 	ourUart_(os_.uart(1)),
 	m_robotLogic(os, &ourUart_, &m_comModule)
@@ -35,13 +29,12 @@ roombatest::~roombatest()
 //----------------------------------------------------------------------------
 void roombatest::boot(void) {
 	os_.allow_sleep(false);
-	//os_.add_timeout_in(Time(MILLISECONDS), this, NULL);
+	// starts the Ping Service. It is recommended to run the ping
+	// service on a limited number of nodes, not all of them.
+	os_.add_timeout_in(Time(MILLISECONDS), this, NULL);
 //    os_.set_log_mode(ISENSE_LOG_MODE_RADIO);
 	os_.radio().hardware_radio().set_channel(20);
     os_.debug("Boot");
-//    m_robotLogic.getCapabilities();
-//    uint16 temp[] = {0x1bfc,70};
-//    m_robotLogic.doTask("spread",2,temp);
 }
 
 //----------------------------------------------------------------------------
@@ -59,17 +52,11 @@ void roombatest::wake_up(bool memory_held) {
 }
 
 void roombatest::execute(void* userdata) {
-//	m_robotLogic.getCapabilities();
 	m_comModule.sendMessage(os_.id(),BROADCAST,"patapatapata",0,NULL);
-	//os_.debug("Timeout patapata");
 }
 
 void roombatest::receive(uint8 len, const uint8 * buf, uint16 src_addr,
 		uint16 dest_addr, uint16 lqi, uint8 seq_no, uint8 interface) {
-//	os_.debug("receive:");
-//	for (int i = 0; i < len; ++i) {
-//		os_.debug("buf[%d] = %d", i, buf[i]);
-//	}
 
 	m_comModule.decodeMessage(len, buf);
 }
@@ -84,9 +71,6 @@ void roombatest::timeout(void* userdata) {
 
 void roombatest::handle_uart_packet(uint8 type, uint8* buf, uint8 length) {
 	os_.debug("handle_uart_packet:");
-	/*for (int i = 0; i < length; ++i) {
-		os_.debug("  buf[%d] = %d", i, buf[i]);
-	}*/
 	os_.debug("");
 	flooding.send(length, buf);
 
