@@ -83,8 +83,8 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 			activeTask=-1;
 #ifdef DEBUG_DOTASK
 			m_pOs.debug("doTask: turnInfinite");
-			turnInfinite((int16) parameters[0]);
 #endif
+			m_Robot.turnInfinite((uint16) parameters[0]);
 		}
 	}
 
@@ -121,11 +121,6 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 	if (strcmp(taskName, "gather") == 0)
 	{
 		gather(parameters[0],parameters[1]);
-	}
-
-	if (strcmp(taskName, "randomDrive") == 0)
-	{
-		randomDrive();
 	}
 
 	if (strcmp(taskName, "patapatapata") == 0)
@@ -214,10 +209,10 @@ void RobotLogic::getCapabilities()
 	//uint8 taskListLength = 12;
 	uint8 taskListLength=10;
 	//const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo", "driveStraight", "driveStraightDistance"};
-	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo"};
+	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","mitheme","usedemo"};
 	const char*** paramList;
 	//const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1,1,2};
-	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1};
+	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,1};
 
 	// TODO
 	uint8 sensorLength = 3;
@@ -713,6 +708,8 @@ void RobotLogic::onWallSensorChanged(uint8 wall, uint8 virtualWall)
 
 void RobotLogic::onBumpAndWheelDrop(uint8 bumpsAndWheelDrop)
 {
+	uint16 bumperLeft = bumpsAndWheelDrop & 1;
+	m_pCommunication->sendMessage(m_pOs.id(), BROADCAST, "sensor_bumperLeft", 1, &bumperLeft);
 	m_pOs.debug("Bump and wheel drop: %d", bumpsAndWheelDrop);
 	bumpsAndWheeldrop = bumpsAndWheelDrop;
 	m_pOs.add_task(this, NULL);

@@ -396,12 +396,17 @@ void Robot::driveStraightDistance(uint16 speed, uint16 distance, MovementDoneHan
 
 void Robot::turnInfinite(int16 turnVelocity)
 {
-	driveDirect(-turnVelocity,turnVelocity);
+	driveDirect(-1 * turnVelocity,turnVelocity);
+}
+
+void Robot::stop_notime()
+{
+	driveDirect_notime(0,0);
 }
 
 void Robot::stop()
 {
-	driveDirect_notime(0,0);
+	driveDirect(0,0);
 }
 
 void Robot::handle_uint8_data(uint8 data)
@@ -436,7 +441,7 @@ void Robot::execute(void *userdata)
 		if((*task).time.sec() == lastAction.sec() && (*task).time.ms() == lastAction.ms())
 		{
 //			m_pOs.debug("Stop wird ausgeführt");
-			stop();
+			stop_notime();
 //			m_pOs.debug("MovementDoneHandler: %x", task->doneHandler);
 			if(task->doneHandler != NULL)
 			{

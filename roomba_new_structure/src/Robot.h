@@ -418,6 +418,11 @@ public:
 	void stop();
 
 	/**
+	 * Stops all movement of the iCreate.
+	 */
+	void stop_notime();
+
+	/**
 	 * Makes the Create Robot drive a specified distance
 	 * @param velocity the velocity in mm/s. Valid values are between -500 mm/s and 500 mm/s
 	 * @param radius the radius of the turn. Valid values are between -2000 mm and 2000 mm.
