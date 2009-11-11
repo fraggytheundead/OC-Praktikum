@@ -34,6 +34,7 @@
 #include "Robot.h"
 
 #define MILLISECONDS 1000
+#define PINGPONGINTERVAL	500
 
 // Packet types
 #define ROOMBA_REMOTE_START_COMMUNICATION		1

@@ -333,7 +333,7 @@ void
 		int16 speed;
 		int16 radius;
 		if(xAchse < 200 && xAchse > -200) {
-//			os_.debug("speed = 0");
+//			os_.debug("speed_factor = 0");
 			speed_factor = 0;
 		} else if(xAchse >= 200) {
 //			os_.debug("xAchse >= 200");
@@ -349,7 +349,7 @@ void
 //			os_.debug("xAchse <= -200");
 			speed_factor = (xAchse + 200);
 			if(speed_factor < -600) {
-//				os_.debug("xAchse < -600");
+//				os_.debug("xAchse < -600, speed_factor = -100");
 				speed_factor = -100;
 			} else {
 				speed_factor = (speed_factor * 100 / 600);
@@ -374,13 +374,15 @@ void
 //			os_.debug("yAchse <= -200");
 			radius_factor = (yAchse + 200);
 			if(radius_factor < -600) {
-//				os_.debug("yAchse < -600");
+//				os_.debug("yAchse < -600, radius_factor = -100");
 				radius_factor = -100;
 			} else {
 				radius_factor = (radius_factor * 100 / 600);
 //				os_.debug("yAchse <= -600, radius_factor: %i", radius_factor);
 			}
 		}
+
+//		os_.debug("speed_factor: %i, radius_factor: %i", speed_factor, radius_factor);
 
 		speed = (speed_factor * 500) / 100;
 
@@ -390,6 +392,9 @@ void
 			// auf der Stelle drehen
 			radius = 0;
 			speed = 250;
+		} else if (radius_factor == -100) {
+			radius = 0;
+			speed = -250;
 		} else if (radius_factor > 0){
 			radius = 2000 - ((radius_factor * 2000) / 100);
 		} else {
