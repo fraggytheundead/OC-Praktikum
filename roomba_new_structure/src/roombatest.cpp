@@ -8,6 +8,8 @@
 
 #include "roombatest.h"
 
+//#define ROOMBA_PING_SERVICE
+
 //----------------------------------------------------------------------------
 roombatest::roombatest(isense::Os& os) :
 	isense::Application(os),
@@ -29,9 +31,12 @@ roombatest::~roombatest()
 //----------------------------------------------------------------------------
 void roombatest::boot(void) {
 	os_.allow_sleep(false);
+
+#ifdef ROOMBA_PING_SERVICE
 	// starts the Ping Service. It is recommended to run the ping
 	// service on a limited number of nodes, not all of them.
 	os_.add_timeout_in(Time(MILLISECONDS), this, NULL);
+#endif
 //    os_.set_log_mode(ISENSE_LOG_MODE_RADIO);
 	os_.radio().hardware_radio().set_channel(20);
     os_.debug("Boot");

@@ -18,6 +18,17 @@
 
 #define DEBUG_GET_CAPABILITIES
 //#define DEBUG_DOTASK
+//#define DEBUG_SWARM
+
+// Sensor names
+#define BATTERY				"battery"
+#define BUMP_LEFT			"BumpL"
+#define BUMP_RIGHT			"BumpR"
+#define WHEEL_DROP_LEFT		"DropL"
+#define WHEEL_DROP_RIGHT	"DropR"
+
+#define GUI_ID				0
+
 
 RobotLogic::RobotLogic(Os& os, Uart *pUart, Communication *pCommunication) :
 	m_pOs(os),
@@ -76,7 +87,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		}
 	}
 
-	if(strcmp(taskName, "turnInfinite") == 0)
+	if(strcmp(taskName, "turnInf") == 0)
 	{
 		if(paramLength == 1)
 		{
@@ -97,7 +108,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		m_Robot.stop();
 	}
 
-	if(strcmp(taskName, "driveDistance") == 0)
+	if(strcmp(taskName, "driveDis") == 0)
 	{
 		if(paramLength == 3)
 		{
@@ -123,12 +134,14 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		gather(parameters[0],parameters[1]);
 	}
 
+	//this task creates dummy traffic for the neighborhoodmonitor
 	if (strcmp(taskName, "patapatapata") == 0)
 	{
 		//m_pOs.debug("patapatapata erhalten in ID: %i",m_pOs.id());
 		m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"pon",0,NULL);
 	}
 
+	//this task creates dummy traffic for the neighborhoodmonitor
 	if (strcmp(taskName, "pon") == 0)
 	{
 		//m_pCommunication->sendMessage(0,"pon",0,NULL);
@@ -142,6 +155,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		}
 	}
 
+	//this task manages the link qualities sent by other robots during the swarm behaviors
 	if (strcmp(taskName, "cquality") == 0)
 	{
 		//m_pOs.debug("Centerquality Msgtest von %x ist %i %i",parameters[0],parameters[1],parameters[2]);
@@ -175,7 +189,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		m_Robot.startDemo(parameters[0]);
 	}
 
-	if(strcmp(taskName, "mitheme") == 0)
+	if(strcmp(taskName, "mi") == 0)
 	{
 		miTheme();
 	}
@@ -207,17 +221,17 @@ void RobotLogic::getCapabilities()
 	m_pOs.debug("getCapabilities start");
 #endif
 	//uint8 taskListLength = 12;
-	uint8 taskListLength=10;
+	uint8 taskListLength=9;
 	//const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo", "driveStraight", "driveStraightDistance"};
-	const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","mitheme","usedemo"};
+	const char* taskList[]={"drive","turn","driveDis","turnInf","stop","spread","gather","mi","demo"};
 	const char*** paramList;
 	//const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1,1,2};
 	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,1};
 
 	// TODO
-	uint8 sensorLength = 3;
-	char* sensors[]={"battery", "bumperLeft", "bumperRight"};
-	uint8 sensorRange[]={0,100,0,1,0,1};
+	uint8 sensorLength = 5;
+	char* sensors[]={ BATTERY, BUMP_LEFT, BUMP_RIGHT, WHEEL_DROP_LEFT, WHEEL_DROP_RIGHT };
+	uint8 sensorRange[]={0,100,0,1,0,1, 0, 1, 0, 1};
 
 	paramList = ((const char ***)isense::malloc(sizeof (const char **) * taskListLength));
 	for (int i = 0; i < taskListLength; ++i)
@@ -244,7 +258,7 @@ void RobotLogic::getCapabilities()
 	paramList[5][1] = "threshold";
 	paramList[6][0] = "centerID";
 	paramList[6][1] = "threshold";
-	paramList[9][0] = "number";
+	paramList[8][0] = "number";
 	/*paramList[10][0] = "speed";
 	paramList[11][0] = "speed";
 	paramList[11][1] = "distance";*/
@@ -320,6 +334,9 @@ void RobotLogic::gather(uint16 tempID,uint8 tempThreshold)
 		//m_Robot.driveStraightDistance(200,500,this);
 		//swarmState=cGATHERDISTANCEWAIT;
 	}
+	uint8 song1[]={88,8,1,8};
+	m_Robot.setSong(0,song1,2);
+	m_Robot.playSong(0);
 }
 
 void RobotLogic::randomDrive()
@@ -331,7 +348,9 @@ void RobotLogic::randomDrive()
 			m_neighborhoodMonitor.SIGNAL_STRENGTH);
 	while (neighbors->addr != 0xFFFF) {
 		linkQuality = neighbors->value;
+#ifdef DEBUG_SWARM
 		m_pOs.debug("randomDrive, linkQuality: %i", linkQuality);
+#endif
 		*(neighbors++);
 	}
 	m_Robot.turn(1,180, this);
@@ -416,7 +435,11 @@ void RobotLogic::execute(void *userdata)
 		uint8 linkQuality;
 		uint8 neighborCount = 0;
 		uint8 ownCenterQuality = 0;
+		uint16* linkArray;
+		linkArray=((uint16*)isense::malloc(40));
+#ifdef DEBUG_SWARM
 		m_pOs.debug("spread: GetNeighbors ID: %x",m_pOs.id());
+#endif
 		neighbors = m_neighborhoodMonitor.get_neighbors(m_neighborhoodMonitor.SIGNAL_STRENGTH);
 		neighborsCopy=neighbors;
 		if (neighbors!=NULL)
@@ -424,7 +447,9 @@ void RobotLogic::execute(void *userdata)
 			while (neighbors->addr != 0xFFFF)
 			{
 				linkQuality = neighbors->value;
-				//m_pOs.debug("spread, Nachbar addr: %x  linkQuality: %i", neighbors->addr, linkQuality);
+#ifdef DEBUG_SWARM
+				m_pOs.debug("spread, Nachbar addr: %x  linkQuality: %i", neighbors->addr, linkQuality);
+#endif
 				neighborCount++;
 				linkQualityArray[neighborCount]=linkQuality;
 				linkQualityID[neighborCount]=neighbors->addr;
@@ -433,8 +458,12 @@ void RobotLogic::execute(void *userdata)
 					ownCenterQuality=linkQuality;
 				}
 				*(neighbors++);
+				linkArray[neighborCount*2]=(uint16)neighbors->addr;
+				linkArray[neighborCount*2+1]=(uint16)linkQuality;
 			}
+			m_pCommunication->sendMessage(m_pOs.id(), GUI_ID, "linkStatus", neighborCount*2, linkArray);
 			isense::free(neighborsCopy);
+			isense::free(linkArray);
 		}
 		else
 		{
@@ -511,7 +540,9 @@ void RobotLogic::execute(void *userdata)
 			{
 				bcenterConnected=true;
 				//hops=0;
+#ifdef DEBUG_SWARM
 				m_pOs.debug("Directly Connected:%i",ownCenterQuality);
+#endif
 			}
 			uint16 temp[3];
 			temp[0]=m_pOs.id();
@@ -521,7 +552,9 @@ void RobotLogic::execute(void *userdata)
 			}
 			else
 			{
+#ifdef DEBUG_SWARM
 				m_pOs.debug("Not Connected");
+#endif
 				temp[1]=0;
 			}
 			//m_pOs.debug("Hops:%i",hops);
@@ -561,12 +594,18 @@ void RobotLogic::execute(void *userdata)
 				doTask("drive",2,temp);*/
 			}
 		}
+#ifdef DEBUG_SWARM
 		m_pOs.debug("Ende von spread");
+#endif
 	}
 	if (activeTask==cGATHER)
 	{
 		uint8 linkQuality;
+		uint16* linkArray;
+		linkArray=((uint16*)isense::malloc(2));
+#ifdef DEBUG_SWARM
 		m_pOs.debug("cGATHER");
+#endif
 		neighbors = m_neighborhoodMonitor.get_neighbors(m_neighborhoodMonitor.SIGNAL_STRENGTH);
 		neighborsCopy=neighbors;
 		if (neighbors!=NULL)
@@ -574,16 +613,24 @@ void RobotLogic::execute(void *userdata)
 			while (neighbors->addr != 0xFFFF)
 			{
 				linkQuality = neighbors->value;
+#ifdef DEBUG_SWARM
 				m_pOs.debug("gather, Nachbar addr: %x   linkQuality: %i",neighbors->addr, linkQuality);
+#endif
 				if (neighbors->addr == centerID)
 				{
 					centerQuality[centerCounter]=linkQuality;
+#ifdef DEBUG_SWARM
 					m_pOs.debug("centerQuality[%i]: %i",centerCounter,centerQuality[centerCounter]);
+#endif
 					centerCounter=(centerCounter+1)%maxCenterCounter;
+					linkArray[0]=centerID;
+					linkArray[1]=linkQuality;
 				}
+				m_pCommunication->sendMessage(m_pOs.id(), GUI_ID, "linkStatus", 2, linkArray);
 				*(neighbors++);
 			}
 			isense::free(neighborsCopy);
+			isense::free(linkArray);
 			//m_pCommunication->sendMessage(m_pOs.id(),BROADCAST,"dummytraffic",0,NULL);
 			if (m_pOs.id()!=centerID)
 			{
@@ -597,8 +644,9 @@ void RobotLogic::execute(void *userdata)
 					}
 					if (gatherSum/maxCenterCounter>centerThreshold)
 					{
-						//m_Robot.setLeds(0, 0, 0);
+#ifdef DEBUG_SWARM
 						m_pOs.debug("Center erreicht");
+#endif
 						m_Robot.stop();
 						activeTask=0;
 						swarmState=cNONE;
@@ -608,11 +656,9 @@ void RobotLogic::execute(void *userdata)
 					}
 					else if ((oldGatherSum/maxCenterCounter)>(gatherSum/maxCenterCounter)+5)
 					{
-						//m_Robot.setLeds(2, 255, 255);
+#ifdef DEBUG_SWARM
 						m_pOs.debug("Gather moved away from %i to %i",(oldGatherSum/maxCenterCounter),(gatherSum/maxCenterCounter));
-						/*uint8 turnscript[] = {137, 0, 200, 0, 0, 157, 0, 90};
-							m_Robot.setScript(turnscript, 8);
-							m_Robot.executeScript();*/
+#endif
 						m_Robot.turn(90,0,this);
 						swarmState=cGATHERTURNWAIT;
 						gatherDistance=1000;
@@ -630,10 +676,9 @@ void RobotLogic::execute(void *userdata)
 						{
 							gatherDistance=200;
 						}
+#ifdef DEBUG_SWARM
 						m_pOs.debug("Gather fahr weiter GatherDistance: %i",gatherDistance);
-						/*uint8 movescript[] = {137, 1, 44, 128, 0, 156, uint8(gatherDistance>>8), uint8(gatherDistance&0xff), 137, 0, 0, 0, 0};
-							m_Robot.setScript(movescript, 13);
-							m_Robot.executeScript();*/
+#endif
 						m_Robot.driveStraightDistance(200,gatherDistance,this);
 						swarmState=cGATHERDISTANCEWAIT;
 						return;
@@ -644,10 +689,14 @@ void RobotLogic::execute(void *userdata)
 	}
 	if (activeTask==cRANDOMDRIVE)
 	{
+#ifdef DEBUG_SWARM
 		m_pOs.debug("cRANDOMDRIVE");
+#endif
 		uint8 linkQuality;
 		uint8 neighborCount = 0;
+#ifdef DEBUG_SWARM
 		m_pOs.debug("randomDrive: GetNeighbors ID: %x",m_pOs.id());
+#endif
 		neighbors = m_neighborhoodMonitor.get_neighbors(m_neighborhoodMonitor.SIGNAL_STRENGTH);
 		neighborsCopy=neighbors;
 		if (neighbors!=NULL)
@@ -655,8 +704,10 @@ void RobotLogic::execute(void *userdata)
 			while (neighbors->addr != 0xFFFF)
 			{
 				linkQuality = neighbors->value;
+#ifdef DEBUG_SWARM
 				m_pOs.debug("Nachbar addr: %x",neighbors->addr);
 				m_pOs.debug("randomDrive, linkQuality: %i", linkQuality);
+#endif
 				if (linkQuality > 50)
 				{
 					neighborCount++;
@@ -686,6 +737,9 @@ void RobotLogic::onIoModeChanged(uint8 ioMode)
 
 void RobotLogic::onPowerStateChanged(PCPOWERSTATE pState)
 {
+	uint16 charge_percentage;
+	charge_percentage = (uint16)(((uint32)pState->batteryCharge)*100 / 65535);
+	m_pCommunication->sendMessage(m_pOs.id(), GUI_ID, "sensor_" BATTERY, 1, &charge_percentage);
 }
 
 void RobotLogic::onCliffStateChanged(PCCLIFFSTATE pState)
@@ -708,9 +762,20 @@ void RobotLogic::onWallSensorChanged(uint8 wall, uint8 virtualWall)
 
 void RobotLogic::onBumpAndWheelDrop(uint8 bumpsAndWheelDrop)
 {
-	uint16 bumperLeft = bumpsAndWheelDrop & 1;
-	m_pCommunication->sendMessage(m_pOs.id(), BROADCAST, "sensor_bumperLeft", 1, &bumperLeft);
-	m_pOs.debug("Bump and wheel drop: %d", bumpsAndWheelDrop);
+	uint16 value;
+
+	m_bumpsAndWheelDrop = bumpsAndWheelDrop;
+
+	value = (bumpsAndWheelDrop & 1) ? 1 : 0;
+	m_pCommunication->sendMessage(m_pOs.id(), GUI_ID, "sensor_" BUMP_RIGHT, 1, &value);
+	value = (bumpsAndWheelDrop & 2) ? 1 : 0;
+	m_pCommunication->sendMessage(m_pOs.id(), GUI_ID, "sensor_" BUMP_LEFT, 1, &value);
+	value = (bumpsAndWheelDrop & 4) ? 1 : 0;
+	m_pCommunication->sendMessage(m_pOs.id(), GUI_ID, "sensor_" WHEEL_DROP_RIGHT, 1, &value);
+	value = (bumpsAndWheelDrop & 8) ? 1 : 0;
+	m_pCommunication->sendMessage(m_pOs.id(), GUI_ID, "sensor_" WHEEL_DROP_LEFT, 1, &value);
+
+
 	bumpsAndWheeldrop = bumpsAndWheelDrop;
 	m_pOs.add_task(this, NULL);
 }
