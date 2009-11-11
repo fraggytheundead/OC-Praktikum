@@ -14,8 +14,6 @@
 #include "roombatest.h"
 #include "RobotLogic.h"
 
-static uint16 GUI_ID = 0;
-static uint8 messageId = 0;
 
 Communication::Communication(isense::Os& os) :
 	m_os(os) {
@@ -23,8 +21,6 @@ Communication::Communication(isense::Os& os) :
 
 Communication::~Communication() {
 }
-
-//int sensorLength, String[] sensors, int[] sensorRange
 
 void Communication::sendFeatures(uint16 robotId, uint8 taskListLength,
 		const char ** taskList, const uint8 * paramListLength,
@@ -130,9 +126,7 @@ void Communication::sendMessage(uint16 robotId, uint16 destId,
 		for (int j = 0; j < taskNameLen; ++j) {
 			buf[pos + 2 * valueLength + j] = taskName[j];
 		}
-		//buf[len - 1] = '\0';
-		buf[len - 2] = 0;
-		buf[len - 1] = 0;
+		buf[len - 1] = '\0';
 		Flooding& flooding = ((roombatest *) m_os.application())->getFlooding();
 		flooding.send(len, buf);
 	}
@@ -142,10 +136,8 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 	RobotLogic* logic;
 	logic = ((roombatest *) m_os.application())->getRobotLogic();
 	uint16 destination;
-	destination=((buf[3] << 8) | buf[4]);
-	//m_os.debug("decodeMessage, messagetype: %i  Dest: %i", buf[0], destination);
 	switch (buf[0]) {
-	case 200:
+	case ISENSE_RADIO_PACKET_TYPE_DO_TASK:
 		destination = (buf[1] << 8) | buf[2];
 		if (destination == m_os.id() || destination == BROADCAST) {
 			uint8 paramLength;
@@ -153,14 +145,11 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 			const char *taskName;
 
 			paramLength = buf[3];
-			if (paramLength>0)
-			{
-				parameters
+			parameters
 					= (uint16 *) isense::malloc(sizeof(uint16) * paramLength);
 
-				for (int i = 0; i < paramLength; ++i) {
-					parameters[i] = (buf[4 + i*2] << 8) | buf[4 + i*2 + 1];
-				}
+			for (int i = 0; i < paramLength; ++i) {
+				parameters[i] = (buf[4 + i*2] << 8) | buf[4 + i*2 + 1];
 			}
 
 			taskName = (char *) buf + 4 + paramLength * 2;
@@ -170,15 +159,15 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 			isense::free(parameters);
 		}
 		break;
-	case 201:
+	case ISENSE_RADIO_PACKET_TYPE_SHOW_ME_WHAT_YOU_GOT:
 		logic->getCapabilities();
 		break;
-	case 202:
+	case ISENSE_RADIO_PACKET_TYPE_SEND_MESSAGE:
 		destination = (buf[3] << 8) | buf[4];
-		if (destination == GUI_ID) { //TODO Ueberlegen was fuer ne ID fuer die GUI
+		if (destination == GUI_ID) {
 			m_os.uart(0).write_packet(isense::Uart::MESSAGE_TYPE_CUSTOM_IN_1,
 					(char*) buf, len);
-		} else if ((destination == m_os.id())||(destination==BROADCAST)) {
+		} else if (destination == m_os.id()) {
 			uint16 srcId;
 			uint8 valueLength;
 			uint16 *values;
@@ -186,13 +175,10 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 
 			srcId = (buf[1] << 8) | buf[2];
 			valueLength = buf[5];
-			if (valueLength>0)
-			{
-				values = (uint16 *) isense::malloc(sizeof(uint16) * valueLength);
+			values = (uint16 *) isense::malloc(sizeof(uint16) * valueLength);
 
-				for(int i = 0; i < valueLength; ++i) {
-					values[i] = (buf[6 + i*2] << 8) | buf[6 + i*2 + 1];
-				}
+			for(int i = 0; i < valueLength; ++i) {
+				values[i] = (buf[6 + i*2] << 8) | buf[6 + i*2 + 1];
 			}
 
 			taskName = (char *) buf + 6 + valueLength * 2;
@@ -206,7 +192,7 @@ void Communication::decodeMessage(uint8 len, const uint8 * buf) {
 			isense::free(values);
 		}
 		break;
-	case 203:
+	case ISENSE_RADIO_PACKET_TYPE_SEND_FEATURES:
 		m_os.uart(0).write_packet(isense::Uart::MESSAGE_TYPE_CUSTOM_IN_1,
 				(char*) buf, len);
 		break;
