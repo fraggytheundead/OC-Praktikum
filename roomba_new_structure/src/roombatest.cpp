@@ -8,7 +8,7 @@
 
 #include "roombatest.h"
 
-//#define ROOMBA_PING_SERVICE
+#define ROOMBA_PING_SERVICE
 
 //----------------------------------------------------------------------------
 roombatest::roombatest(isense::Os& os) :

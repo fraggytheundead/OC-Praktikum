@@ -27,6 +27,20 @@
 #define WHEEL_DROP_LEFT		"DropL"
 #define WHEEL_DROP_RIGHT	"DropR"
 
+// task name
+#define TASK_DRIVE				"drive"
+#define TASK_TURN				"turn"
+#define TASK_DRIVE_DISTANCE		"driveDistance"
+#define TASK_TURN_INFINITE		"turnInfinite"
+#define TASK_STOP				"stop"
+#define TASK_SPREAD				"spread"
+#define TASK_GATHER				"gather"
+#define TASK_MITHEME			"miTheme"
+#define TASK_DEMO				"demo"
+#define TASK_DRIVE_STRAIGHT		"driveStraight"
+#define TASK_DRIVE_STRAIGHT_DISTANCE		"driveStraightDistance"
+
+
 #define GUI_ID				0
 
 
@@ -64,7 +78,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 #ifdef DEBUG_DOTASK
 	m_pOs.debug("doTask STRING, ID: %s, paramLength: %i", taskName, paramLength);
 #endif
-	if(strcmp(taskName, "drive") == 0)
+	if(strcmp(taskName, TASK_DRIVE) == 0)
 	{
 		if(paramLength == 2)
 		{
@@ -75,7 +89,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		}
 	}
 
-	if(strcmp(taskName, "turn") == 0)
+	if(strcmp(taskName, TASK_TURN) == 0)
 	{
 		if(paramLength == 2)
 		{
@@ -87,7 +101,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		}
 	}
 
-	if(strcmp(taskName, "turnInf") == 0)
+	if(strcmp(taskName, TASK_TURN_INFINITE) == 0)
 	{
 		if(paramLength == 1)
 		{
@@ -99,7 +113,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		}
 	}
 
-	if(strcmp(taskName, "stop") == 0)
+	if(strcmp(taskName, TASK_STOP) == 0)
 	{
 		activeTask=-1;
 #ifdef DEBUG_DOTASK
@@ -108,7 +122,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		m_Robot.stop();
 	}
 
-	if(strcmp(taskName, "driveDis") == 0)
+	if(strcmp(taskName, TASK_DRIVE_DISTANCE) == 0)
 	{
 		if(paramLength == 3)
 		{
@@ -121,7 +135,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		}
 	}
 
-	if (strcmp(taskName, "spread") == 0)
+	if (strcmp(taskName, TASK_SPREAD) == 0)
 	{
 #ifdef DEBUG_DOTASK
 		m_pOs.debug("doTask: spread");
@@ -129,7 +143,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		spread(parameters[0],parameters[1]);
 	}
 
-	if (strcmp(taskName, "gather") == 0)
+	if (strcmp(taskName, TASK_GATHER) == 0)
 	{
 		gather(parameters[0],parameters[1]);
 	}
@@ -183,18 +197,18 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		}
 	}
 
-	if (strcmp(taskName, "usedemo") == 0)
+	if (strcmp(taskName, TASK_DEMO) == 0)
 	{
 		activeTask=-1;
 		m_Robot.startDemo(parameters[0]);
 	}
 
-	if(strcmp(taskName, "mi") == 0)
+	if(strcmp(taskName, TASK_MITHEME) == 0)
 	{
 		miTheme();
 	}
 
-	if(strcmp(taskName, "driveStraight") == 0)
+	if(strcmp(taskName, TASK_DRIVE_STRAIGHT) == 0)
 	{
 		if(paramLength == 1)
 		{
@@ -203,7 +217,7 @@ void RobotLogic::doTask(const char* taskName, uint8 paramLength, const uint16 *p
 		}
 	}
 
-	if(strcmp(taskName, "driveStraightDistance") == 0)
+	if(strcmp(taskName, TASK_DRIVE_STRAIGHT_DISTANCE) == 0)
 	{
 		if(paramLength == 1)
 		{
@@ -223,7 +237,8 @@ void RobotLogic::getCapabilities()
 	//uint8 taskListLength = 12;
 	uint8 taskListLength=9;
 	//const char* taskList[]={"drive","turn","driveDistance","turnInfinite","stop","spread","gather","randomDrive","mitheme","usedemo", "driveStraight", "driveStraightDistance"};
-	const char* taskList[]={"drive","turn","driveDis","turnInf","stop","spread","gather","mi","demo"};
+	const char* taskList[]={TASK_DRIVE,TASK_TURN,TASK_DRIVE_DISTANCE,TASK_TURN_INFINITE
+			,TASK_STOP,TASK_SPREAD,TASK_GATHER,TASK_MITHEME,TASK_DEMO};
 	const char*** paramList;
 	//const uint8 paramListLength[]={2,2,3,1,0,2,2,0,0,1,1,2};
 	const uint8 paramListLength[]={2,2,3,1,0,2,2,0,1};
@@ -738,7 +753,7 @@ void RobotLogic::onIoModeChanged(uint8 ioMode)
 void RobotLogic::onPowerStateChanged(PCPOWERSTATE pState)
 {
 	uint16 charge_percentage;
-	charge_percentage = (uint16)(((uint32)pState->batteryCharge)*100 / 65535);
+	charge_percentage = (uint16)(((uint32)pState->batteryCharge)*100 / pState->batteryCapacity);
 	m_pCommunication->sendMessage(m_pOs.id(), GUI_ID, "sensor_" BATTERY, 1, &charge_percentage);
 }
 

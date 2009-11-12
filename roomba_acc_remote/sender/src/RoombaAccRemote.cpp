@@ -51,8 +51,8 @@
 #define ACCEL_DEADZONE_FULL_XAXIS				200
 #define ACCEL_DEADZONE_FULL_YAXIS				200
 
-#define ACCEL_FULL_VALUE_XAXIS					1000 - (ACCEL_DEADZONE_CENTER_XAXIS + ACCEL_DEADZONE_FULL_XAXIS)
-#define ACCEL_FULL_VALUE_YAXIS					1000 - (ACCEL_DEADZONE_CENTER_YAXIS + ACCEL_DEADZONE_FULL_YAXIS)
+#define ACCEL_FULL_VALUE_XAXIS					(1000 - (ACCEL_DEADZONE_CENTER_XAXIS + ACCEL_DEADZONE_FULL_XAXIS))
+#define ACCEL_FULL_VALUE_YAXIS					(1000 - (ACCEL_DEADZONE_CENTER_YAXIS + ACCEL_DEADZONE_FULL_YAXIS))
 
 // Limiting the Roombas Speed:
 #define ROOMBA_MAX_SPEED						500
@@ -201,6 +201,11 @@ void
         cm_->led_off();
         connectLed = false;
         os_.add_timeout_in(Time(500), this, (int*) TASK_CONNECT_BLINK);
+
+#ifdef DEBUG_JOYSTICK
+        os_.debug("DeadzoneX: %i, DeadzoneY: %i, MaxX: %i, MaxY: %i", ACCEL_DEADZONE_CENTER_XAXIS,
+        		ACCEL_DEADZONE_CENTER_YAXIS, ACCEL_FULL_VALUE_XAXIS, ACCEL_FULL_VALUE_YAXIS);
+#endif
  	}
 
 void
@@ -298,17 +303,18 @@ void
 #endif
 			speed_factor = 0;
 		} else if(xAchse >= ACCEL_DEADZONE_CENTER_XAXIS) {
-#ifdef DEBUG_JOYSTICK_VERBOSE
-			os_.debug("xAchse >= 200");
-#endif
+
 			speed_factor = (xAchse - ACCEL_DEADZONE_CENTER_XAXIS);
+#ifdef DEBUG_JOYSTICK_VERBOSE
+			os_.debug("xAchse >= 200, speed_factor: %i", speed_factor);
+#endif
 			if(speed_factor > ACCEL_FULL_VALUE_XAXIS) {
 #ifdef DEBUG_JOYSTICK_VERBOSE
 				os_.debug("xAchse > 600");
 #endif
 				speed_factor = 100;
 			} else {
-				speed_factor = (speed_factor * 100 / ACCEL_FULL_VALUE_XAXIS);
+				speed_factor = ((speed_factor * 100) / ACCEL_FULL_VALUE_XAXIS);
 #ifdef DEBUG_JOYSTICK_VERBOSE
 				os_.debug("xAchse <= 600, speed_factor: %i", speed_factor);
 #endif
@@ -325,7 +331,7 @@ void
 
 				speed_factor = -100;
 			} else {
-				speed_factor = (speed_factor * 100 / ACCEL_FULL_VALUE_XAXIS);
+				speed_factor = ((speed_factor * 100) / ACCEL_FULL_VALUE_XAXIS);
 #ifdef DEBUG_JOYSTICK_VERBOSE
 				os_.debug("xAchse <= -600, speed_factor: %i", speed_factor);
 #endif
@@ -348,7 +354,7 @@ void
 #endif
 				radius_factor = 100;
 			} else {
-				radius_factor = (radius_factor * 100 / ACCEL_FULL_VALUE_YAXIS);
+				radius_factor = ((radius_factor * 100) / ACCEL_FULL_VALUE_YAXIS);
 #ifdef DEBUG_JOYSTICK_VERBOSE
 				os_.debug("yAchse <= 600, radius_factor: %i", radius_factor);
 #endif
